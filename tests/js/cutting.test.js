@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cuttingRow, cuttingSummary, registerCutting } from '../../resources/js/cutting.js';
+import { cuttingInputWeight, cuttingRow, cuttingSummary, registerCutting } from '../../resources/js/cutting.js';
 const roll = {id: 1, weight_kg: '10.000', color: 'Navy', dia: 32};
 test('cutting kg components reconcile and decimals remain exact', () => {
  const row = cuttingRow({dozens: '2.5',weight_per_dozen: '2',weight_unit:'kg',remaining_fabric:'1'},roll);
@@ -69,7 +69,7 @@ test('rolls can be reserved before results; edit accepts blank pairs and rejects
  assert.equal(form.invalid, true);
 });
 
-test('neck batches inherit body dozens and use body output weight for previews', () => {
+test('neck batches reserve partial dozens and preview proportional body weight', () => {
  const source = {id: 9, source_body_row_id: 25, lot_id: 6, lot: 'GR-091026', color: 'Black', color_hex: '#111111', dia: 28, number: 'R-9', dozens: '12.000', weight_kg: '1.680'};
  const form = cuttingFactories.cuttingForm({isNeck: true, available: [source], rows: [], canRecordResults: false});
  form.toggle(source);
@@ -82,7 +82,15 @@ test('neck batches inherit body dozens and use body output weight for previews',
  form.canRecordResults = true;
  form.rows[0].weight_per_dozen = '0.13';
  form.rows[0].dozens = '999';
+ assert.equal(form.invalid, true);
+ form.rows[0].dozens = '5';
  assert.equal(form.invalid, false);
+ assert.equal(form.values(form.rows[0]).roll_weight_kg, '0.700');
+ assert.equal(form.values(form.rows[0]).cut_weight_kg, '0.650');
+ assert.equal(form.values(form.rows[0]).cutting_scrap_kg, '0.050');
+ assert.equal(form.selectedBatches[0].dozens, '5.000');
+ assert.equal(form.remainingDozens(source), '7.000');
+ form.rows[0].dozens = '12';
  assert.equal(form.values(form.rows[0]).cut_weight_kg, '1.560');
  assert.equal(form.values(form.rows[0]).cutting_scrap_kg, '0.120');
  assert.equal(form.summary[0].label, 'GR-091026 / Black / DIA 28');
@@ -91,6 +99,36 @@ test('neck batches inherit body dozens and use body output weight for previews',
  assert.equal(form.invalid, true);
  form.rows[0].source_body_row_id = 999;
  assert.equal(form.invalid, true);
+});
+
+test('partial neck reservations validate quantities before results and preserve them through group selection', () => {
+ const source = {id: 1, source_body_row_id: 10, lot_id: 2, lot: 'LOT', color: 'Black', dia: 28, number: 'R-1', dozens: '15.000', weight_kg: '0.900'};
+ const second = {...source, id: 2, source_body_row_id: 11, number: 'R-2'};
+ const form = cuttingFactories.cuttingForm({isNeck: true, available: [source, second], rows: [], canRecordResults: false});
+ form.toggle(source);
+ for (const dozens of ['', '0', '-1', '15.001']) {
+  form.rows[0].dozens = dozens;
+  assert.equal(form.invalid, true);
+ }
+ form.rows[0].dozens = '5';
+ form.selectRolls([source, second], true);
+ assert.equal(form.rows[0].dozens, '5');
+ assert.equal(form.inputWeight(form.rows[0]), '0.300');
+ assert.equal(form.remainingDozens(source), '10.000');
+ assert.equal(form.invalid, false);
+ assert.equal(form.pending(form.rows[0]), true);
+});
+
+test('partial neck input preserves the final weight remainder and supports tiny allocations', () => {
+ const final = {id: 1, source_body_row_id: 5, dozens: '1.000', weight_kg: '0.334', body_dozens: '3.000', body_weight_kg: '1.000'};
+ const row = {roll_id: 1, source_body_row_id: 5, dozens: '1', weight_per_dozen: '0.2', weight_unit: 'kg', remaining_fabric: '0'};
+ assert.equal(cuttingInputWeight(row, final), '0.334');
+ assert.equal(cuttingRow(row, final).cutting_scrap_kg, '0.134');
+ assert.equal(cuttingInputWeight({...row, dozens: '0.5'}, final), '0.167');
+ const tiny = {...final, weight_kg: '0.000', body_weight_kg: '0.001'};
+ const result = cuttingRow({...row, weight_per_dozen: '0.000001'}, tiny);
+ assert.equal(result.waste_percent, '0.00');
+ assert.equal(result.invalid, false);
 });
 
 test('summary and origin cards keep identical colors and DIAs in different lots separate', () => {

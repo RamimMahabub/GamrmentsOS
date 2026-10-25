@@ -10,6 +10,8 @@ use App\Models\Lot;
 use App\Models\ReturnedRoll;
 use App\Models\Staff;
 use App\Support\CuttingService;
+use App\Support\Decimal;
+use App\Support\NeckAvailability;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -50,13 +52,18 @@ class CuttingJobController extends Controller
     private function form(Request $request, CuttingJob $job): View
     {
         $type = $this->type($request);
-        $available = ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->where('cutting_type', $type)->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id)))->orderBy('number')->get()->map(fn ($roll): array => ['id' => $roll->id, 'number' => $roll->number, 'lot_id' => $roll->dyeingJob->lot_id, 'lot' => $roll->dyeingJob->lot->lot_number, 'color' => $roll->dyeingRow->colorBlock->color->name, 'color_hex' => $roll->dyeingRow->colorBlock->color->hex, 'dia' => $roll->dyeingRow->dia, 'weight_kg' => $roll->weight_kg])->values();
+        $available = $type === 'neck' ? collect() : ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->where('cutting_type', $type)->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id)))->orderBy('number')->get()->map(fn ($roll): array => ['id' => $roll->id, 'number' => $roll->number, 'lot_id' => $roll->dyeingJob->lot_id, 'lot' => $roll->dyeingJob->lot->lot_number, 'color' => $roll->dyeingRow->colorBlock->color->name, 'color_hex' => $roll->dyeingRow->colorBlock->color->hex, 'dia' => $roll->dyeingRow->dia, 'weight_kg' => $roll->weight_kg])->values();
         if ($type === 'neck') {
-            $available = CuttingJobRoll::with(['job.staff', 'lot', 'roll.dyeingRow.colorBlock.color'])->where('cutting_type', 'body')->whereNotNull('cut_weight_kg')->where('cut_weight_kg', '>', 0)->whereHas('job')->whereHas('roll', fn ($q) => $q->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->where('cutting_type', 'neck')->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))))->orderBy('cutting_job_id')->orderBy('id')->get()->map(fn ($body): array => [
-                'id' => $body->roll_id, 'source_body_row_id' => $body->id, 'body_job_id' => $body->cutting_job_id, 'body_url' => route('cutting.body.show', $body->cutting_job_id), 'body_date' => $body->job->cutting_date->format('d/m/Y'), 'body_staff' => $body->job->staff->name,
-                'number' => $body->roll->number, 'lot_id' => $body->lot_id, 'lot' => $body->lot->lot_number, 'color' => $body->color, 'color_hex' => $body->roll->dyeingRow->colorBlock->color->hex, 'dia' => $body->dia,
-                'dozens' => $body->dozens, 'weight_kg' => $body->cut_weight_kg,
-            ])->values();
+            $availability = app(NeckAvailability::class);
+            $available = CuttingJobRoll::with(['job.staff', 'lot', 'roll.dyeingRow.colorBlock.color',
+                'roll.cuttingRows' => fn ($query) => $query->where('cutting_type', 'neck')->when($job->exists, fn ($query) => $query->where('cutting_job_id', '!=', $job->id)),
+            ])->where('cutting_type', 'body')->where('dozens', '>', 0)->where('cut_weight_kg', '>', 0)->whereHas('job')
+                ->whereHas('roll', fn ($query) => $query->where('is_available', true)->whereHas('dyeingJob'))
+                ->orderBy('cutting_job_id')->orderBy('id')->get()->map(fn ($body): array => [
+                    'id' => $body->roll_id, 'source_body_row_id' => $body->id, 'body_job_id' => $body->cutting_job_id, 'body_url' => route('cutting.body.show', $body->cutting_job_id), 'body_date' => $body->job->cutting_date->format('d/m/Y'), 'body_staff' => $body->job->staff->name,
+                    'number' => $body->roll->number, 'lot_id' => $body->lot_id, 'lot' => $body->lot->lot_number, 'color' => $body->color, 'color_hex' => $body->roll->dyeingRow->colorBlock->color->hex, 'dia' => $body->dia,
+                    ...$availability->remaining($body, $body->roll->cuttingRows),
+                ])->filter(fn (array $body): bool => Decimal::of($body['dozens'])->isPositive())->values();
         }
         $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => $row->only(['roll_id', 'source_body_row_id', 'dozens', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']))->all() : []);
         if ($type === 'neck') {
@@ -64,7 +71,6 @@ class CuttingJobController extends Controller
                 $source = $available->firstWhere('source_body_row_id', $row['source_body_row_id'] ?? null);
                 if ($source) {
                     $row['roll_id'] = $source['id'];
-                    $row['dozens'] = $source['dozens'];
                 }
 
                 return $row;

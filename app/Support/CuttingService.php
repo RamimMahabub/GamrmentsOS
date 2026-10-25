@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 final class CuttingService
 {
+    public function __construct(private NeckAvailability $neckAvailability) {}
+
     public function save(array $data, string $type, ?CuttingJob $job = null): CuttingJob
     {
         abort_unless(in_array($type, ['body', 'neck', 'rib'], true), 404);
@@ -38,6 +40,8 @@ final class CuttingService
             $before = $job?->load('rows')->toArray();
             $sources = CuttingJobRoll::with('job')->whereIn('id', $sourceIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $rolls = ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $neckRows = $isNeck ? CuttingJobRoll::whereIn('roll_id', $ids)->where('cutting_type', 'neck')
+                ->when($job, fn ($query) => $query->where('cutting_job_id', '!=', $job->id))->lockForUpdate()->get()->groupBy('roll_id') : collect();
             $computed = [];
             $seen = [];
             foreach ($data['rows'] as $index => $row) {
@@ -49,13 +53,18 @@ final class CuttingService
                     throw ValidationException::withMessages(['cutting_date' => 'Neck cutting cannot be dated before its body cutting job.']);
                 }
                 $roll = $rolls->get($source?->roll_id ?? $row['roll_id'] ?? null);
-                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id]) || CuttingJobRoll::where('roll_id', $roll->id)->where('cutting_type', $type)->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))->exists()) {
+                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id]) || (! $isNeck && CuttingJobRoll::where('roll_id', $roll->id)->where('cutting_type', $type)->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))->exists())) {
                     throw ValidationException::withMessages(['rows.'.$index.'.'.($isNeck ? 'source_body_row_id' : 'roll_id') => $isNeck ? 'This body batch is unavailable or already assigned to neck cutting.' : 'This roll is unavailable or already used for '.ucfirst($type).'.']);
                 }
                 $seen[$roll->id] = true;
                 $inputWeight = $source?->cut_weight_kg ?? $roll->weight_kg;
                 if ($isNeck) {
-                    $row['dozens'] = $source->dozens;
+                    $available = $this->neckAvailability->remaining($source, $neckRows->get($roll->id, collect()));
+                    $row['dozens'] = Decimal::scale(Decimal::normalize($row['dozens'] ?? '0'));
+                    if (! Decimal::of($row['dozens'])->isPositive() || Decimal::of($row['dozens'])->isGreaterThan($available['dozens'])) {
+                        throw ValidationException::withMessages(['rows.'.$index.'.dozens' => 'Choose a positive quantity up to '.$available['dozens'].' available dozen from this body batch.']);
+                    }
+                    $inputWeight = $this->neckAvailability->inputWeight($available, $row['dozens']);
                     if (! Decimal::of(Decimal::normalize($row['remaining_fabric'] ?? '0'))->isZero()) {
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Neck cutting uses body pieces; record the removed neck fabric as cutting scrap, not remaining roll fabric.']);
                     }
@@ -71,7 +80,7 @@ final class CuttingService
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Add dozens and weight per dozen before recording remaining fabric.']);
                     }
                     $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight,
-                        'dozens' => $source?->dozens, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
+                        'dozens' => $isNeck ? $row['dozens'] : null, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
                         'weight_unit' => $row['weight_unit'], 'remaining_fabric' => '0', 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => '0'];
 
                     continue;
@@ -88,7 +97,7 @@ final class CuttingService
                 }
                 $scrap = Decimal::scale(Decimal::of($inputWeight)->minus($cut)->minus($remainingKg));
                 $waste = Decimal::scale(Decimal::of($scrap)->plus($remainingKg));
-                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
+                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => Decimal::of($inputWeight)->isZero() ? '0.00' : (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
             }
             if ($job && $type === 'body') {
                 $this->protectBodyBatches($job, $computed, $data['cutting_date']);
@@ -125,12 +134,12 @@ final class CuttingService
     {
         $replacements = collect($computed)->keyBy('roll_id');
         foreach ($job->rows as $body) {
-            $neck = CuttingJobRoll::with('job')->where('roll_id', $body->roll_id)->where('cutting_type', 'neck')->first();
-            if (! $neck) {
+            $neckRows = CuttingJobRoll::with('job')->where('roll_id', $body->roll_id)->where('cutting_type', 'neck')->get();
+            if ($neckRows->isEmpty()) {
                 continue;
             }
             $replacement = $replacements->get($body->roll_id);
-            if (! $replacement || ($cuttingDate && $neck->job && $cuttingDate > $neck->job->cutting_date->toDateString())) {
+            if (! $replacement || ($cuttingDate && $neckRows->contains(fn (CuttingJobRoll $neck): bool => $neck->job && $cuttingDate > $neck->job->cutting_date->toDateString()))) {
                 throw ValidationException::withMessages(['job' => 'This body batch is assigned to neck cutting. Remove that neck assignment before removing or changing its source.']);
             }
             foreach (['lot_id', 'color', 'dia', 'dozens', 'cut_weight_kg', 'roll_weight_kg'] as $field) {

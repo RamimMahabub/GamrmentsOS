@@ -3,10 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\CuttingJob;
+use App\Models\CuttingJobRoll;
+use App\Models\Staff;
 use App\Models\Yarn;
 use App\Modules\Dyeing\FabricAvailability;
 use App\Modules\Knitting\KnittingService;
 use App\Modules\Yarn\StockLedger;
+use App\Support\Decimal;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
 use Tests\Support\ManufacturingFixtures;
@@ -103,6 +107,24 @@ class ConcurrencyTest extends TestCase
         $results = $this->race('dyeing', array_fill(0, 4, $this->dyeingData($job->lot_id, $company, '150.000', 1, null, [32])));
         $this->assertCount(1, array_filter($results, fn ($result): bool => $result['code'] === 0));
         $this->assertDatabaseCount('dyeing_jobs', 1);
-        $this->assertSame('50.000',app(FabricAvailability::class)->forLot($job->lot->fresh())[0]['available_kg']);
+        $this->assertSame('50.000', app(FabricAvailability::class)->forLot($job->lot->fresh())[0]['available_kg']);
+    }
+
+    public function test_simultaneous_neck_jobs_cannot_exceed_the_body_dozen_balance(): void
+    {
+        $job = CuttingJob::factory()->create(['cutting_type' => 'body', 'cutting_date' => '2026-10-20']);
+        $body = CuttingJobRoll::factory()->create(['cutting_job_id' => $job->id, 'dozens' => '10', 'cut_weight_kg' => '5']);
+        $payloads = Staff::factory()->count(4)->create()->map(fn (Staff $staff): array => [
+            'staff_id' => $staff->id,
+            'cutting_date' => '2026-10-23',
+            'rows' => [['source_body_row_id' => $body->id, 'dozens' => '3', 'weight_per_dozen' => '0.4']],
+        ])->all();
+
+        $results = $this->race('neck', $payloads);
+
+        $this->assertCount(3, array_filter($results, fn (array $result): bool => $result['code'] === 0));
+        $this->assertDatabaseCount('cutting_jobs', 4);
+        $this->assertSame('9.000', Decimal::scale((string) CuttingJobRoll::where('cutting_type', 'neck')->sum('dozens')));
+        $this->assertSame('4.500', Decimal::scale((string) CuttingJobRoll::where('cutting_type', 'neck')->sum('roll_weight_kg')));
     }
 }

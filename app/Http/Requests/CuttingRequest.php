@@ -33,7 +33,7 @@ class CuttingRequest extends ManufacturingRequest
             'rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*' => ['required', 'array'],
             'rows.*.roll_id' => $isNeck ? ['exclude'] : ['required', 'integer', 'distinct', 'exists:returned_rolls,id'],
             'rows.*.source_body_row_id' => $isNeck ? ['required', 'integer', 'distinct', 'exists:cutting_job_rolls,id'] : ['exclude'],
-            'rows.*.dozens' => $isNeck ? ['exclude'] : ['nullable', 'required_with:rows.*.weight_per_dozen', new DecimalInput(3, true, '999999999.999')],
+            'rows.*.dozens' => [$isNeck ? 'required' : 'nullable', ...($isNeck ? [] : ['required_with:rows.*.weight_per_dozen']), new DecimalInput(3, true, '999999999.999')],
             'rows.*.weight_per_dozen' => ['nullable', ...($isNeck ? [] : ['required_with:rows.*.dozens']), new DecimalInput(6, true, '999999999.999999')],
             'rows.*.weight_unit' => ['required', Rule::in(['kg', 'lb'])], 'rows.*.remaining_fabric' => ['required', new DecimalInput(3, false, '999999999.999')],
         ];
