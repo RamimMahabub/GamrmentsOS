@@ -16,9 +16,9 @@ class StaffController extends Controller
         $request->validate(['q' => ['nullable', 'string', 'max:255']]);
         $staffs = Staff::when($request->q, fn ($query) => $query->where(fn ($q) => $q->where('name', 'like', '%'.$request->q.'%')->orWhere('phone', 'like', '%'.$request->q.'%')))->orderBy('name')->paginate(25)->withQueryString();
 
-        $lifetimeDozens = $productivity->lifetimeDozens($staffs->getCollection());
+        $lifetimePieces = $productivity->lifetimePieces($staffs->getCollection());
 
-        return view('staffs.index', compact('staffs', 'lifetimeDozens'));
+        return view('staffs.index', compact('staffs', 'lifetimePieces'));
     }
 
     public function create(): View

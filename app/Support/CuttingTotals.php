@@ -16,7 +16,8 @@ final class CuttingTotals
         foreach (['dozens', 'roll_weight_kg', 'cut_weight_kg', 'cutting_scrap_kg', 'remaining_fabric_kg', 'waste_kg'] as $field) {
             $totals[$field] = Decimal::scale(Decimal::sum($rows->pluck($field)));
         }
-        $totals['pieces'] = Decimal::scale(Decimal::of($totals['dozens'])->multipliedBy(12));
+        $totals['pieces'] = Decimal::scale(Decimal::sum($rows->map(fn ($row): string => CuttingQuantity::pieces($row))));
+        $totals['dozens'] = CuttingQuantity::dozens($totals['pieces']);
         $totals['waste_percent'] = Decimal::of($totals['roll_weight_kg'])->isZero() ? '0.00' : (string) Decimal::of($totals['waste_kg'])->multipliedBy(100)->dividedBy($totals['roll_weight_kg'], 2, RoundingMode::HalfUp);
 
         return $totals;

@@ -60,11 +60,12 @@ final class CuttingService
                 $inputWeight = $source?->cut_weight_kg ?? $roll->weight_kg;
                 if ($isNeck) {
                     $available = $this->neckAvailability->remaining($source, $neckRows->get($roll->id, collect()));
-                    $row['dozens'] = Decimal::scale(Decimal::normalize($row['dozens'] ?? '0'));
-                    if (! Decimal::of($row['dozens'])->isPositive() || Decimal::of($row['dozens'])->isGreaterThan($available['dozens'])) {
-                        throw ValidationException::withMessages(['rows.'.$index.'.dozens' => 'Choose a positive quantity up to '.$available['dozens'].' available dozen from this body batch.']);
+                    $pieces = CuttingQuantity::fromInput($row);
+                    $row['dozens'] = CuttingQuantity::dozens($pieces);
+                    if (! Decimal::of($pieces)->isPositive() || Decimal::of($pieces)->isGreaterThan($available['pieces'])) {
+                        throw ValidationException::withMessages(['rows.'.$index.'.dozens' => 'Choose a positive quantity up to '.CuttingQuantity::display($available['pieces']).' available from this body batch.']);
                     }
-                    $inputWeight = $this->neckAvailability->inputWeight($available, $row['dozens']);
+                    $inputWeight = $this->neckAvailability->inputWeight($available, $pieces);
                     if (! Decimal::of(Decimal::normalize($row['remaining_fabric'] ?? '0'))->isZero()) {
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Neck cutting uses body pieces; record the removed neck fabric as cutting scrap, not remaining roll fabric.']);
                     }
@@ -80,7 +81,7 @@ final class CuttingService
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Add dozens and weight per dozen before recording remaining fabric.']);
                     }
                     $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight,
-                        'dozens' => $isNeck ? $row['dozens'] : null, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
+                        'dozens' => $isNeck ? $row['dozens'] : null, 'pieces' => $isNeck ? $pieces : null, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
                         'weight_unit' => $row['weight_unit'], 'remaining_fabric' => '0', 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => '0'];
 
                     continue;
@@ -89,7 +90,7 @@ final class CuttingService
                 $dozens = Decimal::scale(Decimal::normalize($row['dozens']));
                 $weight = Decimal::scale(Decimal::normalize($row['weight_per_dozen']), 6);
                 $perKg = Decimal::scale(Decimal::of($weight)->multipliedBy($factor), 8);
-                $cut = Decimal::scale(Decimal::of($dozens)->multipliedBy($perKg));
+                $cut = $isNeck ? (string) Decimal::of($pieces)->multipliedBy($perKg)->dividedBy(12, 3, RoundingMode::HalfUp) : Decimal::scale(Decimal::of($dozens)->multipliedBy($perKg));
                 $remaining = Decimal::scale(Decimal::normalize($row['remaining_fabric'] ?? '0'));
                 $remainingKg = Decimal::scale(Decimal::of($remaining)->multipliedBy($factor));
                 if (Decimal::of($cut)->plus($remainingKg)->isGreaterThan($inputWeight)) {
@@ -97,7 +98,7 @@ final class CuttingService
                 }
                 $scrap = Decimal::scale(Decimal::of($inputWeight)->minus($cut)->minus($remainingKg));
                 $waste = Decimal::scale(Decimal::of($scrap)->plus($remainingKg));
-                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => Decimal::of($inputWeight)->isZero() ? '0.00' : (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
+                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'pieces' => $isNeck ? $pieces : null, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => Decimal::of($inputWeight)->isZero() ? '0.00' : (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
             }
             if ($job && $type === 'body') {
                 $this->protectBodyBatches($job, $computed, $data['cutting_date']);

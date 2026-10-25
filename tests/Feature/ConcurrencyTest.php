@@ -10,6 +10,7 @@ use App\Models\Yarn;
 use App\Modules\Dyeing\FabricAvailability;
 use App\Modules\Knitting\KnittingService;
 use App\Modules\Yarn\StockLedger;
+use App\Support\CuttingTotals;
 use App\Support\Decimal;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Process\Process;
@@ -126,5 +127,22 @@ class ConcurrencyTest extends TestCase
         $this->assertDatabaseCount('cutting_jobs', 4);
         $this->assertSame('9.000', Decimal::scale((string) CuttingJobRoll::where('cutting_type', 'neck')->sum('dozens')));
         $this->assertSame('4.500', Decimal::scale((string) CuttingJobRoll::where('cutting_type', 'neck')->sum('roll_weight_kg')));
+    }
+
+    public function test_simultaneous_mixed_unit_neck_jobs_cannot_overdraw_pieces(): void
+    {
+        $job = CuttingJob::factory()->create(['cutting_type' => 'body', 'cutting_date' => '2026-10-20']);
+        $body = CuttingJobRoll::factory()->create(['cutting_job_id' => $job->id, 'dozens' => '4', 'cut_weight_kg' => '3']);
+        $payloads = Staff::factory()->count(4)->create()->map(fn (Staff $staff): array => [
+            'staff_id' => $staff->id,
+            'cutting_date' => '2026-10-23',
+            'rows' => [['source_body_row_id' => $body->id, 'quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '1', 'quantity_pieces' => '4', 'weight_per_dozen' => '0.4']],
+        ])->all();
+        $results = $this->race('neck', $payloads);
+        $this->assertCount(3, array_filter($results, fn (array $result): bool => $result['code'] === 0));
+        $totals = CuttingTotals::sum(CuttingJobRoll::where('cutting_type', 'neck')->get());
+        $this->assertSame('48.000', $totals['pieces']);
+        $this->assertSame('4.000', $totals['dozens']);
+        $this->assertSame('3.000', $totals['roll_weight_kg']);
     }
 }

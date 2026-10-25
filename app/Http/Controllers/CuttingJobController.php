@@ -63,9 +63,9 @@ class CuttingJobController extends Controller
                     'id' => $body->roll_id, 'source_body_row_id' => $body->id, 'body_job_id' => $body->cutting_job_id, 'body_url' => route('cutting.body.show', $body->cutting_job_id), 'body_date' => $body->job->cutting_date->format('d/m/Y'), 'body_staff' => $body->job->staff->name,
                     'number' => $body->roll->number, 'lot_id' => $body->lot_id, 'lot' => $body->lot->lot_number, 'color' => $body->color, 'color_hex' => $body->roll->dyeingRow->colorBlock->color->hex, 'dia' => $body->dia,
                     ...$availability->remaining($body, $body->roll->cuttingRows),
-                ])->filter(fn (array $body): bool => Decimal::of($body['dozens'])->isPositive())->values();
+                ])->filter(fn (array $body): bool => Decimal::of($body['pieces'])->isPositive())->values();
         }
-        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => $row->only(['roll_id', 'source_body_row_id', 'dozens', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']))->all() : []);
+        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => $row->only(['roll_id', 'source_body_row_id', 'dozens', 'pieces', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']))->all() : []);
         if ($type === 'neck') {
             $rows = collect($rows)->map(function (array $row) use ($available): array {
                 $source = $available->firstWhere('source_body_row_id', $row['source_body_row_id'] ?? null);

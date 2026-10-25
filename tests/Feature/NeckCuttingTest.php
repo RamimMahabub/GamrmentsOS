@@ -7,6 +7,7 @@ use App\Models\CuttingJobRoll;
 use App\Models\Staff;
 use App\Models\User;
 use App\Support\CuttingTotals;
+use App\Support\StaffProductivity;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -154,7 +155,7 @@ class NeckCuttingTest extends TestCase
             ->assertSee('3.000 kg awaiting neck cutting');
         $this->assertSame('1.600', $first->cut_weight_kg);
         $this->assertSame('0.400', $first->waste_kg);
-        $this->get(route('cutting.neck.create'))->assertOk()->assertSee('Dozens for neck')->assertViewHas('form', function (array $form): bool {
+        $this->get(route('cutting.neck.create'))->assertOk()->assertSee('Quantity for neck')->assertViewHas('form', function (array $form): bool {
             $source = $form['available']->firstWhere('source_body_row_id', $this->body->id);
 
             return $source['dozens'] === '1.500' && $source['weight_kg'] === '3.000' && $source['body_dozens'] === '2.500';
@@ -255,5 +256,83 @@ class NeckCuttingTest extends TestCase
         $this->expectException(QueryException::class);
 
         CuttingJobRoll::factory()->create(['cutting_job_id' => $second->id, 'roll_id' => $this->body->roll_id]);
+    }
+
+    public function test_combined_quantity_stores_exact_pieces_and_preserves_the_remaining_balance(): void
+    {
+        $this->body->update(['dozens' => '15', 'cut_weight_kg' => '0.900']);
+        $data = $this->neckData(['quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '10', 'quantity_pieces' => '4', 'weight_per_dozen' => '0.05']);
+        unset($data['rows'][0]['dozens']);
+        $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
+        $neck = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
+        $this->assertSame('124.000', $neck->pieces);
+        $this->assertSame('10.333', $neck->dozens);
+        $this->assertSame('0.620', $neck->roll_weight_kg);
+        $this->assertSame('0.517', $neck->cut_weight_kg);
+        $this->assertSame('124.000', CuttingTotals::sum([$neck])['pieces']);
+        $this->get(route('cutting.neck.show', $neck->cutting_job_id))->assertOk()->assertSee('10 dozen 4 pc');
+        $this->get(route('lots.show', $this->body->lot_id))->assertOk()->assertSee('4 dozen 8 pc ready for neck cutting');
+        $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->first()['pieces'] === '56.000');
+        $this->get(route('cutting.neck.edit', $neck->cutting_job_id))->assertOk()->assertViewHas('form', fn (array $form): bool => $form['rows'][0]['pieces'] === '124.000');
+        $this->put(route('cutting.neck.update', $neck->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertSame('124.000', $neck->fresh()->pieces);
+        $second = $this->neckData(['quantity_mode' => 'pieces', 'quantity_pieces' => '57', 'weight_per_dozen' => '']);
+        unset($second['rows'][0]['dozens']);
+        $this->post(route('cutting.neck.store'), $second)->assertSessionHasErrors('rows.0.dozens');
+        $second['rows'][0]['quantity_pieces'] = '56';
+        $this->post(route('cutting.neck.store'), $second)->assertSessionHasNoErrors();
+        $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->isEmpty());
+        $this->delete(route('cutting.neck.destroy', $neck->cutting_job_id))->assertSessionHasNoErrors();
+        $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->first()['pieces'] === '124.000');
+    }
+
+    public function test_single_piece_allocations_exhaust_one_dozen_without_rounding_drift(): void
+    {
+        $this->body->update(['dozens' => '1', 'cut_weight_kg' => '1']);
+        $data = $this->neckData(['quantity_mode' => 'pieces', 'quantity_pieces' => '1', 'weight_per_dozen' => '0.12']);
+        unset($data['rows'][0]['dozens']);
+        for ($piece = 0; $piece < 12; $piece++) {
+            $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
+            if ($piece === 0) {
+                $this->get(route('staffs.index'))->assertOk()->assertViewHas('lifetimePieces', fn (array $pieces): bool => $pieces[$this->staff->id] === '13.000');
+            }
+        }
+        $rows = CuttingJobRoll::where('cutting_type', 'neck')->get();
+        $totals = CuttingTotals::sum($rows);
+        $this->assertSame('12.000', $totals['pieces']);
+        $this->assertSame('1.000', $totals['dozens']);
+        $this->assertSame('1.000', $totals['roll_weight_kg']);
+        $this->assertSame('0.120', $totals['cut_weight_kg']);
+        $this->post(route('cutting.neck.store'), $data)->assertSessionHasErrors('rows.0.dozens');
+        $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->isEmpty());
+        $productivity = app(StaffProductivity::class);
+        $entries = $productivity->entries($this->staff, '2026-10-22', '2026-10-24');
+        $this->assertSame(['dozens' => '1.000', 'pieces' => '12.000'], $productivity->totals($entries)['cutting:neck']);
+        $this->get(route('lots.show', $this->body->lot_id))->assertOk()->assertSee('0 pc ready for neck cutting');
+    }
+
+    public function test_quantity_units_validate_whole_counts_and_ignore_unused_or_forged_fields(): void
+    {
+        foreach ([
+            ['quantity_mode' => 'wrong'],
+            ['quantity_mode' => 'dozen', 'quantity_dozens' => '0.5'],
+            ['quantity_mode' => 'dozen'],
+            ['quantity_mode' => 'pieces', 'quantity_pieces' => '0.5'],
+            ['quantity_mode' => 'pieces', 'quantity_pieces' => '-1'],
+            ['quantity_mode' => 'pieces'],
+            ['quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '1', 'quantity_pieces' => '12'],
+            ['quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '1'],
+            ['quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '0', 'quantity_pieces' => '0'],
+        ] as $input) {
+            $data = $this->neckData($input);
+            unset($data['rows'][0]['dozens']);
+            $this->post(route('cutting.neck.store'), $data)->assertSessionHasErrors();
+        }
+        $data = $this->neckData(['quantity_mode' => 'dozen', 'quantity_dozens' => '1', 'quantity_pieces' => '999', 'pieces' => '999', 'weight_per_dozen' => '']);
+        unset($data['rows'][0]['dozens']);
+        $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
+        $neck = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
+        $this->assertSame('12.000', $neck->pieces);
+        $this->assertNull($neck->cut_weight_kg);
     }
 }
