@@ -252,10 +252,9 @@ class CuttingTest extends TestCase
         $this->get(route('lots.show', $job->rows->first()->lot_id))->assertOk()->assertSee('10.000 kg still uncut');
     }
 
-    public function test_partial_result_pairs_or_remaining_fabric_without_results_are_rejected(): void
+    public function test_weight_or_remaining_fabric_without_a_quantity_is_rejected(): void
     {
-        $data = $this->data([], ['rows' => [['roll_id' => $this->roll->id, 'dozens' => '2']]]);
-        $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.weight_per_dozen');
+        $data = $this->data();
         $data['rows'][0] = ['roll_id' => $this->roll->id, 'weight_per_dozen' => '2'];
         $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.dozens');
         $data['rows'][0] = ['roll_id' => $this->roll->id, 'remaining_fabric' => '1'];
@@ -302,5 +301,83 @@ class CuttingTest extends TestCase
         $this->put(route('cutting.body.update', $body), $ribData)->assertSessionHasNoErrors();
         $this->get(route('cutting.rib.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->contains('id', $this->roll->id) && ! $form['available']->contains('id', $second->id));
         $this->post(route('cutting.rib.store'), $this->data())->assertSessionHasNoErrors();
+    }
+
+    public function test_body_and_rib_automatically_calculate_weight_when_quantity_is_entered(): void
+    {
+        foreach (['body', 'rib'] as $section) {
+            $data = $this->data(['dozens' => '3', 'weight_per_dozen' => '', 'remaining_fabric' => '']);
+            $this->post(route('cutting.'.$section.'.store'), $data)->assertSessionHasNoErrors();
+            $job = CuttingJob::where('cutting_type', $section)->firstOrFail();
+            $row = $job->rows->first();
+            $this->assertTrue($row->weight_is_automatic);
+            $this->assertSame('3.333333', $row->weight_per_dozen);
+            $this->assertSame('3.33333333', $row->weight_per_dozen_kg);
+            $this->assertSame('10.000', $row->cut_weight_kg);
+            $this->assertSame('0.000', $row->remaining_fabric_kg);
+            $this->assertSame('0.000', $row->cutting_scrap_kg);
+            $this->assertSame('0.000', $row->waste_kg);
+            $this->assertSame('0.00', $row->waste_percent);
+            $this->get(route('cutting.'.$section.'.show', $job))->assertOk()->assertSee('Auto');
+            $this->get(route('cutting.'.$section.'.edit', $job))->assertOk()->assertViewHas('form', fn (array $form): bool => $form['rows'][0]['weight_per_dozen'] === '');
+            $data['rows'][0]['dozens'] = '700000';
+            $this->put(route('cutting.'.$section.'.update', $job), $data)->assertSessionHasNoErrors();
+            $this->assertSame('10.000', $row->fresh()->cut_weight_kg);
+            $this->assertSame('0.000', $row->fresh()->waste_kg);
+            $this->assertSame('0.000014', $row->fresh()->weight_per_dozen);
+            $this->put(route('cutting.'.$section.'.update', $job), $data)->assertSessionHasNoErrors();
+            $this->assertSame('10.000', $row->fresh()->cut_weight_kg);
+            $this->delete(route('cutting.'.$section.'.destroy', $job))->assertSessionHasNoErrors();
+        }
+    }
+
+    public function test_automatic_weight_supports_lb_remaining_fabric_and_manual_overrides(): void
+    {
+        $data = $this->data(['dozens' => '2', 'weight_per_dozen' => '', 'weight_unit' => 'lb', 'remaining_fabric' => '']);
+        $this->post(route('cutting.body.store'), $data)->assertSessionHasNoErrors();
+        $row = CuttingJobRoll::firstOrFail();
+        $this->assertSame('11.023113', $row->weight_per_dozen);
+        $this->assertSame('5.00000000', $row->weight_per_dozen_kg);
+        $this->assertSame('10.000', $row->cut_weight_kg);
+        $data['rows'][0]['remaining_fabric'] = '1';
+        $this->put(route('cutting.body.update', $row->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertSame('9.546', $row->fresh()->cut_weight_kg);
+        $this->assertSame('0.454', $row->fresh()->remaining_fabric_kg);
+        $this->assertSame('0.000', $row->fresh()->cutting_scrap_kg);
+        $this->assertSame('4.54', $row->fresh()->waste_percent);
+        $data['rows'][0]['weight_per_dozen'] = '4';
+        $data['rows'][0]['weight_unit'] = 'kg';
+        $data['rows'][0]['remaining_fabric'] = '';
+        $this->put(route('cutting.body.update', $row->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertFalse($row->fresh()->weight_is_automatic);
+        $this->assertSame('8.000', $row->fresh()->cut_weight_kg);
+        $this->assertSame('20.00', $row->fresh()->waste_percent);
+        $this->get(route('cutting.body.edit', $row->cutting_job_id))->assertViewHas('form', fn (array $form): bool => $form['rows'][0]['weight_per_dozen'] === '4.000000');
+        $data['rows'][0]['weight_per_dozen'] = '';
+        $this->put(route('cutting.body.update', $row->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertTrue($row->fresh()->weight_is_automatic);
+        $this->assertSame('0.00', $row->fresh()->waste_percent);
+        $data['rows'][0]['remaining_fabric'] = '11';
+        $this->put(route('cutting.body.update', $row->cutting_job_id), $data)->assertSessionHasErrors('rows.0.remaining_fabric');
+    }
+
+    public function test_automatic_weight_matches_the_actual_roll_weight_in_the_owner_example(): void
+    {
+        $this->roll->update(['weight_kg' => '1.814', 'weight' => '1.814']);
+        $data = $this->data(['dozens' => '16']);
+        unset($data['rows'][0]['weight_per_dozen'], $data['rows'][0]['remaining_fabric']);
+        $this->post(route('cutting.body.store'), $data)->assertSessionHasNoErrors();
+        $row = CuttingJobRoll::firstOrFail();
+        $this->assertSame('0.113375', $row->weight_per_dozen);
+        $this->assertSame('1.814', $row->cut_weight_kg);
+        $this->assertSame('0.00', $row->waste_percent);
+    }
+
+    public function test_automatic_rate_outside_storage_precision_is_rejected_before_saving(): void
+    {
+        $this->roll->update(['weight_kg' => '100000000000']);
+        $data = $this->data(['dozens' => '0.001', 'weight_per_dozen' => '', 'remaining_fabric' => '']);
+        $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.dozens');
+        $this->assertDatabaseCount('cutting_jobs', 0);
     }
 }

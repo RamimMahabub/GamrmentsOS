@@ -65,7 +65,7 @@ class CuttingJobController extends Controller
                     ...$availability->remaining($body, $body->roll->cuttingRows),
                 ])->filter(fn (array $body): bool => Decimal::of($body['pieces'])->isPositive())->values();
         }
-        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => $row->only(['roll_id', 'source_body_row_id', 'dozens', 'pieces', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']))->all() : []);
+        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => array_replace($row->only(['roll_id', 'source_body_row_id', 'dozens', 'pieces', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']), $row->weight_is_automatic ? ['weight_per_dozen' => ''] : []))->all() : []);
         if ($type === 'neck') {
             $rows = collect($rows)->map(function (array $row) use ($available): array {
                 $source = $available->firstWhere('source_body_row_id', $row['source_body_row_id'] ?? null);

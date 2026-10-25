@@ -35,13 +35,15 @@ export function cuttingInputWeight(row, roll) {
 export function cuttingRow(row, roll) {
     const pieces = roll.source_body_row_id ? cuttingPieces(row) : decimal(row.dozens).times('12');
     const dozens = pieces.div('12');
-    const perKg = toKg(row.weight_per_dozen, row.weight_unit, 8);
-    const cut = new Big(dozens.times(perKg).toFixed(3));
+    const automatic = !String(row.weight_per_dozen ?? '').trim();
     const remaining = new Big(toKg(row.remaining_fabric || '0', row.weight_unit));
     const weight = new Big(cuttingInputWeight(row, roll));
+    const cut = automatic ? weight.minus(remaining) : new Big(dozens.times(toKg(row.weight_per_dozen, row.weight_unit, 8)).toFixed(3));
+    const perKg = automatic ? cut.times('12').div(pieces).toFixed(8) : toKg(row.weight_per_dozen, row.weight_unit, 8);
+    const enteredWeight = automatic ? cut.times('12').div(pieces.times(row.weight_unit === 'lb' ? '0.45359237' : '1')).toFixed(6) : decimal(row.weight_per_dozen).toFixed(6);
     const scrap = weight.minus(cut).minus(remaining);
     const waste = scrap.plus(remaining);
-    return { dozens: dozens.toFixed(3), pieces: pieces.toFixed(3), roll_weight_kg: weight.toFixed(3), cut_weight_kg: cut.toFixed(3), cutting_scrap_kg: scrap.toFixed(3), remaining_fabric_kg: remaining.toFixed(3), waste_kg: waste.toFixed(3), waste_percent: weight.eq('0') ? '0.00' : waste.times('100').div(weight).toFixed(2), invalid: dozens.lte('0') || (roll.source_body_row_id && pieces.gt(availablePieces(roll))) || decimal(row.weight_per_dozen).lte('0') || scrap.lt('0') };
+    return { automatic, weight_per_dozen: enteredWeight, weight_per_dozen_kg: perKg, dozens: dozens.toFixed(3), pieces: pieces.toFixed(3), roll_weight_kg: weight.toFixed(3), cut_weight_kg: cut.toFixed(3), cutting_scrap_kg: scrap.toFixed(3), remaining_fabric_kg: remaining.toFixed(3), waste_kg: waste.toFixed(3), waste_percent: weight.eq('0') ? '0.00' : waste.times('100').div(weight).toFixed(2), invalid: dozens.lte('0') || (roll.source_body_row_id && pieces.gt(availablePieces(roll))) || (!automatic && decimal(row.weight_per_dozen).lte('0')) || (automatic && (new Big(perKg).gt('9999999999.99999999') || new Big(enteredWeight).gt('999999999999.999999'))) || cut.lt('0') || scrap.lt('0') };
 }
 export function cuttingSummary(rows, available) {
     const groups = new Map();
@@ -120,6 +122,7 @@ export function registerCutting(Alpine) {
         remainingQuantity(roll) { try { const remaining = availablePieces(roll).minus(cuttingPieces(this.selectedRow(roll.id))); return remaining.lt('0') ? 'Exceeds available quantity' : quantityText(remaining) + ' remain for later'; } catch { return 'Enter a valid quantity'; } },
         toggle(roll) { if (this.selected(roll.id)) this.rows = this.rows.filter(row => String(row.roll_id) !== String(roll.id)); else this.rows.push(this.newRow(roll)); },
         roll(row) { return this.available.find(roll => String(roll.id) === String(row.roll_id)) || {}; },
+        autoWeight(row) { if (String(row.weight_per_dozen ?? '').trim()) return ''; try { return 'Auto: ' + cuttingRow(row, this.roll(row)).weight_per_dozen; } catch { return 'Auto from input weight'; } },
         values(row) { if (this.pending(row)) return {}; try { return cuttingRow(row, this.roll(row)); } catch { return {}; } },
         inputWeight(row) { try { return cuttingInputWeight(row, this.roll(row)); } catch { return '-'; } },
         get selectedBatches() {
@@ -151,7 +154,7 @@ export function registerCutting(Alpine) {
                 try { return cuttingRow(row, this.roll(row)).invalid; } catch { return true; }
             });
         },
-        pending(row) { return (this.isNeck || !String(row.dozens ?? '').trim()) && !String(row.weight_per_dozen ?? '').trim(); },
+        pending(row) { return !this.isNeck && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim(); },
         display: format,
     }));
 }

@@ -50,7 +50,7 @@ test('lot picker groups colors and numeric DIAs and preserves existing input thr
  assert.equal(form.colorGroups[0].dias[0].dia, '40');
 });
 
-test('rolls can be reserved before results; edit accepts blank pairs and rejects incomplete results', () => {
+test('rolls can be reserved before results; quantities default to automatic weight and measured results override it', () => {
  const available = [{...roll, lot_id: 1, lot: 'LOT-1', number: 'R-1'}];
  const form = cuttingFactories.cuttingForm({available, rows: [], canRecordResults: false});
  assert.equal(form.invalid, true);
@@ -60,7 +60,9 @@ test('rolls can be reserved before results; edit accepts blank pairs and rejects
  assert.equal(form.invalid, false);
  assert.deepEqual(form.summary, []);
  form.rows[0].dozens = '2';
- assert.equal(form.invalid, true);
+ assert.equal(form.invalid, false);
+ assert.equal(form.values(form.rows[0]).cut_weight_kg, '10.000');
+ assert.equal(form.values(form.rows[0]).waste_percent, '0.00');
  form.rows[0].weight_per_dozen = '2';
  assert.equal(form.invalid, false);
  assert.equal(form.summary[0].cut_weight_kg, '4.000');
@@ -76,8 +78,8 @@ test('neck batches reserve partial dozens and preview proportional body weight',
  assert.equal(form.rows[0].source_body_row_id, 25);
  assert.equal(form.rows[0].dozens, '12.000');
  assert.equal(form.invalid, false);
- assert.equal(form.pending(form.rows[0]), true);
- assert.deepEqual(form.summary, []);
+ assert.equal(form.pending(form.rows[0]), false);
+ assert.equal(form.summary[0].waste_percent, '0.00');
  assert.equal(form.selectedBatches[0].dozens, '12.000');
  form.canRecordResults = true;
  form.rows[0].weight_per_dozen = '0.13';
@@ -116,7 +118,7 @@ test('partial neck reservations validate quantities before results and preserve 
  assert.equal(form.inputWeight(form.rows[0]), '0.300');
  assert.equal(form.remainingDozens(source), '10.000');
  assert.equal(form.invalid, false);
- assert.equal(form.pending(form.rows[0]), true);
+ assert.equal(form.pending(form.rows[0]), false);
 });
 
 test('partial neck input preserves the final weight remainder and supports tiny allocations', () => {
@@ -190,4 +192,49 @@ test('piece totals round only after summing and exact quantities survive editing
  assert.equal(quantityText('0'), '0 pc');
  const legacy = {...saved, pieces: null, dozens: '0.001', quantity_mode: ''};
  assert.equal(cuttingPieces(legacy).toString(), '0.012');
+});
+
+
+test('automatic weight uses exact input with zero waste and responds to quantity, unit, and manual changes', () => {
+ const source = {...roll, weight_kg: '1.814', lot_id: 1, number: 'R-1'};
+ const row = {roll_id: 1, dozens: '16', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0'};
+ const form = cuttingFactories.cuttingForm({available: [source], rows: [row]});
+ assert.equal(form.autoWeight(row), 'Auto: 0.113375');
+ assert.equal(form.values(row).cut_weight_kg, '1.814');
+ assert.equal(form.values(row).cutting_scrap_kg, '0.000');
+ assert.equal(form.values(row).waste_percent, '0.00');
+ row.dozens = '700000';
+ assert.equal(form.values(row).cut_weight_kg, '1.814');
+ assert.equal(form.values(row).waste_kg, '0.000');
+ row.dozens = '16'; row.weight_unit = 'lb';
+ assert.equal(form.values(row).cut_weight_kg, '1.814');
+ row.weight_unit = 'kg'; row.remaining_fabric = '0.314';
+ assert.equal(form.values(row).cut_weight_kg, '1.500');
+ assert.equal(form.values(row).cutting_scrap_kg, '0.000');
+ assert.equal(form.values(row).waste_kg, '0.314');
+ row.remaining_fabric = '2'; assert.equal(form.invalid, true);
+ row.remaining_fabric = '0'; row.weight_per_dozen = '0.1';
+ assert.equal(form.values(row).automatic, false);
+ assert.equal(form.values(row).cut_weight_kg, '1.600');
+ assert.equal(form.values(row).waste_kg, '0.214');
+ row.weight_per_dozen = ''; assert.equal(form.values(row).automatic, true);
+ row.dozens = '0'; assert.equal(form.invalid, true);
+});
+
+test('automatic neck weight follows exact mixed pieces and zero-weight allocations', () => {
+ const source = {id: 1, source_body_row_id: 10, pieces: '180.000', body_pieces: '180.000', dozens: '15.000', weight_kg: '0.900', body_weight_kg: '0.900'};
+ const row = {roll_id: 1, source_body_row_id: 10, quantity_mode: 'dozen_pieces', quantity_dozens: '10', quantity_pieces: '4', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0'};
+ const result = cuttingRow(row, source);
+ assert.equal(result.cut_weight_kg, '0.620'); assert.equal(result.weight_per_dozen, '0.060000');
+ assert.equal(result.waste_percent, '0.00'); assert.equal(result.invalid, false);
+ const tiny = {...source, pieces: '12', body_pieces: '12', weight_kg: '0.000', body_weight_kg: '0.001'};
+ const zero = cuttingRow({...row, quantity_mode: 'pieces', quantity_pieces: '1'}, tiny);
+ assert.equal(zero.cut_weight_kg, '0.000'); assert.equal(zero.weight_per_dozen, '0.000000');
+ assert.equal(zero.waste_percent, '0.00'); assert.equal(zero.invalid, false);
+});
+
+
+test('automatic rate outside storage precision is invalid before submit', () => {
+ const result = cuttingRow({dozens: '0.001', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0'}, {...roll, weight_kg: '100000000000'});
+ assert.equal(result.invalid, true);
 });

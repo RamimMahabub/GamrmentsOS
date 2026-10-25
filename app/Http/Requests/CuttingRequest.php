@@ -39,7 +39,7 @@ class CuttingRequest extends ManufacturingRequest
             'rows.*.quantity_mode' => $isNeck ? ['nullable', Rule::in(['dozen', 'pieces', 'dozen_pieces'])] : ['exclude'],
             'rows.*.quantity_dozens' => $isNeck ? ['nullable', 'required_if:rows.*.quantity_mode,dozen,dozen_pieces', new DecimalInput(0, false, '999999999')] : ['exclude'],
             'rows.*.quantity_pieces' => $isNeck ? ['nullable', 'required_if:rows.*.quantity_mode,pieces,dozen_pieces', new DecimalInput(0, false, '11999999999')] : ['exclude'],
-            'rows.*.weight_per_dozen' => ['nullable', ...($isNeck ? [] : ['required_with:rows.*.dozens']), new DecimalInput(6, true, '999999999.999999')],
+            'rows.*.weight_per_dozen' => ['nullable', new DecimalInput(6, true, '999999999.999999')],
             'rows.*.weight_unit' => ['required', Rule::in(['kg', 'lb'])], 'rows.*.remaining_fabric' => ['required', new DecimalInput(3, false, '999999999.999')],
         ];
     }

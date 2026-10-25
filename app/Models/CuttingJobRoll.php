@@ -15,7 +15,7 @@ class CuttingJobRoll extends Model
 
     protected function casts(): array
     {
-        return array_fill_keys(['roll_weight_kg', 'pieces', 'dozens', 'cut_weight_kg', 'remaining_fabric', 'remaining_fabric_kg', 'cutting_scrap_kg', 'waste_kg'], 'decimal:3') + ['weight_per_dozen' => 'decimal:6', 'weight_per_dozen_kg' => 'decimal:8', 'waste_percent' => 'decimal:2'];
+        return array_fill_keys(['roll_weight_kg', 'pieces', 'dozens', 'cut_weight_kg', 'remaining_fabric', 'remaining_fabric_kg', 'cutting_scrap_kg', 'waste_kg'], 'decimal:3') + ['weight_is_automatic' => 'boolean', 'weight_per_dozen' => 'decimal:6', 'weight_per_dozen_kg' => 'decimal:8', 'waste_percent' => 'decimal:2'];
     }
 
     public function job(): BelongsTo

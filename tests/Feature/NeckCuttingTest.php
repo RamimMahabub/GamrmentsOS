@@ -56,14 +56,16 @@ class NeckCuttingTest extends TestCase
         $this->get(route('cutting.neck.show', $neck->cutting_job_id))->assertOk()->assertSee('Body input weight')->assertSee('Body #'.$this->body->cutting_job_id);
     }
 
-    public function test_full_neck_reservations_can_wait_for_results_and_are_released_on_delete(): void
+    public function test_blank_neck_weight_defaults_to_zero_waste_and_quantities_are_released_on_delete(): void
     {
         $data = $this->neckData(['weight_per_dozen' => '']);
         $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
         $neck = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
         $this->assertSame('2.500', $neck->dozens);
-        $this->assertNull($neck->cut_weight_kg);
-        $this->assertSame('5.000', CuttingTotals::sum([$neck])['pending_weight_kg']);
+        $this->assertSame($neck->roll_weight_kg, $neck->cut_weight_kg);
+        $this->assertTrue($neck->weight_is_automatic);
+        $this->assertSame('0.00', $neck->waste_percent);
+        $this->assertSame('0.000', CuttingTotals::sum([$neck])['pending_weight_kg']);
         $this->post(route('cutting.neck.store'), $data)->assertSessionHasErrors('rows.0.dozens');
         $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->isEmpty());
         $this->get(route('cutting.neck.edit', $neck->cutting_job_id))->assertOk()->assertViewHas('form', fn (array $form): bool => $form['available']->count() === 1);
@@ -170,16 +172,17 @@ class NeckCuttingTest extends TestCase
         $this->get(route('cutting.neck.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->isEmpty());
     }
 
-    public function test_partial_pending_quantities_are_released_on_edit_and_delete(): void
+    public function test_partial_automatic_quantities_are_released_on_edit_and_delete(): void
     {
         $this->post(route('cutting.neck.store'), $this->neckData(['dozens' => '1', 'weight_per_dozen' => '']))->assertSessionHasNoErrors();
         $first = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
-        $this->assertNull($first->cut_weight_kg);
+        $this->assertSame('2.000', $first->cut_weight_kg);
+        $this->assertSame('0.00', $first->waste_percent);
         $this->assertSame('2.000', $first->roll_weight_kg);
         $this->get(route('lots.show', $this->body->lot_id))->assertOk()
             ->assertSee('1.500 dozen ready for neck cutting')
             ->assertSee('3.000 kg awaiting neck cutting')
-            ->assertSee('2.000 kg pending neck cutting');
+            ->assertSee('2.000 kg cut');
         $this->put(route('cutting.neck.update', $first->cutting_job_id), $this->neckData(['dozens' => '0.5', 'weight_per_dozen' => '']))->assertSessionHasNoErrors();
         $this->assertSame('1.000', $first->fresh()->roll_weight_kg);
         $this->post(route('cutting.neck.store'), $this->neckData(['dozens' => '1', 'weight_per_dozen' => '']))->assertSessionHasNoErrors();
@@ -333,6 +336,48 @@ class NeckCuttingTest extends TestCase
         $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
         $neck = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
         $this->assertSame('12.000', $neck->pieces);
-        $this->assertNull($neck->cut_weight_kg);
+        $this->assertSame($neck->roll_weight_kg, $neck->cut_weight_kg);
+        $this->assertTrue($neck->weight_is_automatic);
+        $this->assertSame('0.00', $neck->waste_percent);
+    }
+
+    public function test_automatic_neck_weight_uses_the_exact_selected_piece_allocation(): void
+    {
+        $this->body->update(['dozens' => '15', 'cut_weight_kg' => '0.900']);
+        $data = $this->neckData(['quantity_mode' => 'dozen_pieces', 'quantity_dozens' => '10', 'quantity_pieces' => '4', 'weight_per_dozen' => '']);
+        unset($data['rows'][0]['dozens']);
+        $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
+        $neck = CuttingJobRoll::where('cutting_type', 'neck')->firstOrFail();
+        $this->assertSame('124.000', $neck->pieces);
+        $this->assertSame('0.620', $neck->cut_weight_kg);
+        $this->assertSame('0.060000', $neck->weight_per_dozen);
+        $this->assertSame('0.00', $neck->waste_percent);
+        $this->get(route('cutting.neck.edit', $neck->cutting_job_id))->assertViewHas('form', fn (array $form): bool => $form['rows'][0]['weight_per_dozen'] === '');
+        $data['rows'][0]['weight_unit'] = 'lb';
+        $this->put(route('cutting.neck.update', $neck->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertSame('0.132277', $neck->fresh()->weight_per_dozen);
+        $this->assertSame('0.620', $neck->fresh()->cut_weight_kg);
+        $data['rows'][0]['quantity_mode'] = 'pieces';
+        $data['rows'][0]['quantity_pieces'] = '1';
+        $this->put(route('cutting.neck.update', $neck->cutting_job_id), $data)->assertSessionHasNoErrors();
+        $this->assertSame('0.005', $neck->fresh()->cut_weight_kg);
+        $this->assertSame('0.00', $neck->fresh()->waste_percent);
+    }
+
+    public function test_tiny_automatic_piece_allocations_preserve_the_final_weight_remainder(): void
+    {
+        $this->body->update(['dozens' => '1', 'cut_weight_kg' => '0.001']);
+        $data = $this->neckData(['quantity_mode' => 'pieces', 'quantity_pieces' => '1', 'weight_per_dozen' => '']);
+        unset($data['rows'][0]['dozens']);
+        for ($piece = 0; $piece < 12; $piece++) {
+            $this->post(route('cutting.neck.store'), $data)->assertSessionHasNoErrors();
+        }
+        $rows = CuttingJobRoll::where('cutting_type', 'neck')->get();
+        $totals = CuttingTotals::sum($rows);
+        $this->assertSame('0.001', $totals['cut_weight_kg']);
+        $this->assertSame('0.001', $totals['roll_weight_kg']);
+        $this->assertSame('0.000', $totals['waste_kg']);
+        $this->assertSame('12.000', $totals['pieces']);
+        $this->assertTrue($rows->every(fn (CuttingJobRoll $row): bool => $row->weight_is_automatic && $row->waste_percent === '0.00'));
     }
 }
