@@ -1,6 +1,5 @@
-@import "tailwindcss";
+@import "tailwindcss" source("../");
 @plugin "@tailwindcss/forms";
-@source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
 
 @theme {
     --font-sans: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;

@@ -5,7 +5,7 @@
     "scripts":  {
                     "build":  "vite build",
                     "dev":  "vite",
-                    "vercel-build":  "npm run build",
+                    "vercel-build":  "node scripts/prepare-vercel-assets.mjs && npm run build",
                     "test":  "node --test tests/js/*.test.js"
                 },
     "devDependencies":  {
