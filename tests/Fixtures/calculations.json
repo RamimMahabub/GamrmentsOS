@@ -1,0 +1,13 @@
+{
+  "conversions": [
+    {"value":"500","unit":"lb","kg":"226.796"},
+    {"value":"2500","unit":"lb","kg":"1133.981"},
+    {"value":"226.796","unit":"kg","kg":"226.796"},
+    {"value":"2,500.000","unit":"lb","kg":"1133.981"}
+  ],
+  "waste": [
+    {"input":"226.796","percent":"0","output":"226.796"},
+    {"input":"226.796","percent":"1","output":"224.528"},
+    {"input":"226.796","percent":"100","output":"0.000"}
+  ]
+}

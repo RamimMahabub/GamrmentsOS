@@ -1,0 +1,9 @@
+<section class="panel mt-6"><div class="panel-head"><h2>Fabric totals by cutting stage</h2><span class="hint">Body → neck processes the same pieces. Stage quantities measure work performed.</span></div>
+<div class="grid gap-4 p-6 sm:grid-cols-3">@foreach($entries->groupBy('section') as $section => $sectionEntries)
+@php $fabricTotals=\App\Support\CuttingTotals::sum($sectionEntries); @endphp
+<div class="cutting-dia-card"><h3>{{ ucfirst($section) }}</h3>@foreach(['roll_weight_kg','cut_weight_kg','cutting_scrap_kg','remaining_fabric_kg','waste_kg'] as $key)<p class="hint mt-2">{{ $section === 'neck' && $key === 'roll_weight_kg' ? 'Body input weight' : config('cutting.labels.'.$key) }}: {{ $fabricTotals[$key] }} kg</p>@endforeach</div>
+@endforeach</div>
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Lot origin</th><th>Stage</th><th>Color</th><th>DIA</th><th>Dozens</th></tr></thead><tbody>
+@forelse($entries->groupBy(fn($entry)=>$entry['job_id'].':'.$entry['lot_id'].':'.$entry['color'].':'.$entry['dia']) as $group) @php $entry=$group->first(); @endphp
+<tr><td><a class="link" href="{{ route('cutting.'.$entry['section'].'.show',$entry['job_id']) }}">{{ $entry['date'] }}</a></td><td><a class="link" href="{{ route('lots.show',$entry['lot_id']) }}">{{ $entry['lot'] }}</a></td><td>{{ ucfirst($entry['section']) }}@if($entry['body_job_id'])<a class="link block text-xs" href="{{ route('cutting.body.show', $entry['body_job_id']) }}">From body #{{ $entry['body_job_id'] }}</a>@endif</td><td>{{ $entry['color'] }}</td><td><span class="pill">{{ $entry['dia'] }}</span></td><td class="number font-semibold">{{ \App\Support\Decimal::scale(\App\Support\Decimal::sum($group->pluck('dozens'))) }}</td></tr>
+@empty<tr><td colspan="6" class="empty">No cutting entries in this period.</td></tr>@endforelse</tbody></table></div></section>

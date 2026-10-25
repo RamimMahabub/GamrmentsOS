@@ -1,0 +1,7 @@
+<x-app-layout><x-slot name="header"><x-page-heading title="Staffs"><a class="btn btn-primary" href="{{ route('staffs.create') }}">Add staff</a></x-page-heading></x-slot>
+<div class="panel"><form class="panel-head" method="GET"><label>Search <input name="q" value="{{ request('q') }}" placeholder="Name or phone"></label><button class="btn btn-secondary">Search</button></form>
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Lifetime dozens / pieces</th><th>Actions</th></tr></thead><tbody>
+@forelse($staffs as $staff)
+@php $total=$lifetimeDozens[$staff->id] ?? '0.000'; @endphp
+<tr><td><a class="link" href="{{ route('staffs.show',$staff) }}">{{ $staff->name }}</a></td><td>{{ $staff->phone }}</td><td>{{ str_replace('_',' ',$staff->role) }}</td><td>{{ $staff->is_active ? 'Active' : 'Inactive' }}</td><td>{{ $total }} / {{ \App\Support\Decimal::of($total)->multipliedBy(12) }}</td><td><a class="link" href="{{ route('staffs.edit',$staff) }}">Edit</a>@if($staff->is_active)<form method="POST" action="{{ route('staffs.destroy',$staff) }}">@csrf @method('DELETE')<button class="link">Deactivate</button></form>@endif</td></tr>
+@empty<tr><td colspan="6">No staff found.</td></tr>@endforelse</tbody></table></div><div class="p-5">{{ $staffs->links('components.pagination') }}</div></div></x-app-layout>

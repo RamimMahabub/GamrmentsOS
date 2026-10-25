@@ -1,0 +1,29 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "version": 2,
+    "builds": [
+        { "src": "public/index.php", "use": "vercel-php@0.8.0" },
+        {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": { "distDir": "public/build" }
+        },
+        { "src": "public/favicon.ico", "use": "@vercel/static" },
+        { "src": "public/robots.txt", "use": "@vercel/static" }
+    ],
+    "routes": [
+        { "src": "/build/(.*)", "dest": "/$1" },
+        { "src": "/(favicon\\.ico|robots\\.txt)", "dest": "/public/$1" },
+        { "src": "/(.*)", "dest": "/public/index.php" }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "LOG_CHANNEL": "stderr",
+        "LOG_LEVEL": "warning",
+        "SESSION_DRIVER": "database",
+        "SESSION_SECURE_COOKIE": "true",
+        "CACHE_STORE": "database",
+        "QUEUE_CONNECTION": "sync"
+    }
+}

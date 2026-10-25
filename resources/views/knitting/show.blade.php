@@ -1,0 +1,5 @@
+<x-app-layout>
+<x-slot name="header"><x-page-heading :title="$job->lot->lot_number" :subtitle="'Knitting shipment · Entry '.$job->entry_date->format('d/m/Y')"><a class="btn btn-secondary" href="{{ route('knitting-jobs.edit',$job) }}">Edit shipment</a><a class="btn btn-secondary" href="{{ route('lots.show',$job->lot) }}">Lot trace ↗</a><a class="btn btn-primary" href="{{ route('dyeing-jobs.create',['lot_id'=>$job->lot_id]) }}"><x-icon name="drop"/>Send to dyeing</a></x-page-heading></x-slot>
+<div class="mb-6 flex flex-wrap gap-3"><span class="pill">{{ ucfirst($job->lot->current_stage) }}</span><span class="pill">Delivery: {{ $job->delivery_date?->format('d/m/Y') ?? 'Not scheduled' }}</span><span class="pill">Yarn entered in {{ strtoupper($job->input_unit) }}</span></div>
+<div class="space-y-6"><x-company-contacts :company="$job->company"/><x-knitting-table :job="$job"/>@if($job->notes)<div class="panel p-6"><h2 class="mb-3">Shipment notes</h2><p class="whitespace-pre-line text-muted">{{ $job->notes }}</p></div>@endif</div>
+</x-app-layout>

@@ -1,0 +1,2 @@
+@props(['company'])
+<div class="panel"><div class="panel-head"><h2>{{ $company->name }}</h2><a href="{{ route('companies.show',$company) }}" class="link text-xs">Company details ↗</a></div><div class="grid gap-5 p-6 sm:grid-cols-3">@foreach($company->contacts as $contact)<div><div class="hint uppercase tracking-wide">{{ str_replace('_',' ',$contact->role) }}</div><div class="mt-2 font-medium">{{ $contact->name }}</div><a href="tel:{{ $contact->phone }}" class="mt-1 block text-sm text-muted">{{ $contact->phone }}</a></div>@endforeach</div></div>

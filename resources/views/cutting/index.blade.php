@@ -1,0 +1,13 @@
+<x-app-layout><x-slot name="header"><x-page-heading :title="'Cutting ('.ucfirst($type).')'"><a class="btn btn-primary" href="{{ route('cutting.'.$type.'.create') }}">Add cutting job</a></x-page-heading></x-slot>
+<x-cutting-flow :type="$type"/>
+<div class="panel"><form class="panel-head flex flex-wrap gap-4" method="GET">
+<label>From <input type="date" name="from" value="{{ request('from') }}"></label><label>To <input type="date" name="to" value="{{ request('to') }}"></label>
+<label>Staff <select name="staff_id"><option value="">All staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}" @selected(request('staff_id')==$staff->id)>{{ $staff->name }}</option>@endforeach</select></label>
+<label>Lot <select name="lot_id"><option value="">All lots</option>@foreach($lots as $lot)<option value="{{ $lot->id }}" @selected(request('lot_id')==$lot->id)>{{ $lot->lot_number }}</option>@endforeach</select></label>
+<label>Color <select name="color"><option value="">All colors</option>@foreach($colors as $color)<option @selected(request('color')===$color)>{{ $color }}</option>@endforeach</select></label><button class="btn btn-secondary">Filter</button></form>
+<p class="hint px-6">Filters select matching jobs; totals include all rolls in each job. Remaining fabric is included in total waste.</p>
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Cutting man</th><th>Lots</th><th>Rolls</th><th>Dozens</th><th>Cut weight, kg</th><th>{{ config('cutting.labels.cutting_scrap_kg') }}, kg</th><th>{{ config('cutting.labels.remaining_fabric_kg') }}, kg</th><th>{{ config('cutting.labels.waste_kg') }}, kg</th><th>Actions</th></tr></thead><tbody>
+@forelse($jobs as $job) @php $totals=\App\Support\CuttingTotals::sum($job->rows); @endphp
+<tr><td><a class="link" href="{{ route('cutting.'.$type.'.show',$job) }}">{{ $job->cutting_date->format('d/m/Y') }}</a></td><td><a class="link" href="{{ route('staffs.show',$job->staff) }}">{{ $job->staff->name }}</a></td><td><x-cutting-batches :rows="$job->rows" compact/></td><td>{{ $job->rows->count() }}@if($totals['pending_count'])<p class="hint">{{ $totals['pending_count'] }} pending</p>@endif</td>@foreach(['dozens','cut_weight_kg','cutting_scrap_kg','remaining_fabric_kg','waste_kg'] as $key)<td class="number">{{ $totals['completed_count'] ? $totals[$key] : '-' }}</td>@endforeach<td><a class="link" href="{{ route('cutting.'.$type.'.edit',$job) }}">Edit</a> <x-delete-button :action="route('cutting.'.$type.'.destroy',$job)"/></td></tr>
+@empty<tr><td colspan="10" class="empty">No cutting jobs found.</td></tr>@endforelse
+</tbody></table></div><div class="p-5">{{ $jobs->links('components.pagination') }}</div></div></x-app-layout>
