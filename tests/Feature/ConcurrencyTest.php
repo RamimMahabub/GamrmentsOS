@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\CuttingJob;
 use App\Models\CuttingJobRoll;
+use App\Models\ReturnedRoll;
 use App\Models\Staff;
 use App\Models\Yarn;
 use App\Modules\Dyeing\FabricAvailability;
@@ -144,5 +145,21 @@ class ConcurrencyTest extends TestCase
         $this->assertSame('48.000', $totals['pieces']);
         $this->assertSame('4.000', $totals['dozens']);
         $this->assertSame('3.000', $totals['roll_weight_kg']);
+    }
+
+    public function test_simultaneous_body_and_rib_jobs_cannot_reserve_the_same_roll(): void
+    {
+        $roll = ReturnedRoll::factory()->create();
+        $payloads = Staff::factory()->count(4)->create()->map(fn (Staff $staff, int $index): array => [
+            'cutting_type' => $index % 2 === 0 ? 'body' : 'rib',
+            'staff_id' => $staff->id,
+            'cutting_date' => '2026-10-23',
+            'rows' => [['roll_id' => $roll->id]],
+        ])->all();
+        $results = $this->race('cutting', $payloads);
+        $this->assertCount(1, array_filter($results, fn (array $result): bool => $result['code'] === 0));
+        $this->assertDatabaseCount('cutting_jobs', 1);
+        $this->assertDatabaseCount('cutting_job_rolls', 1);
+        $this->assertSame($roll->id, CuttingJobRoll::firstOrFail()->roll_id);
     }
 }

@@ -18,7 +18,7 @@ class CuttingJobSeeder extends Seeder
             return;
         }
         $staff = Staff::where('is_active', true)->first();
-        $roll = ReturnedRoll::where('is_available', true)->whereDoesntHave('cuttingRows', fn ($q) => $q->where('cutting_type', 'body'))->first();
+        $roll = ReturnedRoll::where('is_available', true)->whereDoesntHave('cuttingRows', fn ($q) => $q->whereIn('cutting_type', ['body', 'rib']))->first();
         if (! $staff || ! $roll || CuttingJob::exists()) {
             return;
         }

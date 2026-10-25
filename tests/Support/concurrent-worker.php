@@ -26,6 +26,7 @@ try {
         'knitting' => app(KnittingService::class)->save($data),
         'dyeing' => app(DyeingService::class)->save($data),
         'neck' => app(CuttingService::class)->save($data, 'neck'),
+        'cutting' => app(CuttingService::class)->save($data, $data['cutting_type']),
     };
     echo json_encode(['id' => $result->id, 'lot_number' => $result->lot_number]);
 } catch (ValidationException $exception) {

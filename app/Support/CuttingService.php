@@ -53,8 +53,8 @@ final class CuttingService
                     throw ValidationException::withMessages(['cutting_date' => 'Neck cutting cannot be dated before its body cutting job.']);
                 }
                 $roll = $rolls->get($source?->roll_id ?? $row['roll_id'] ?? null);
-                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id]) || (! $isNeck && CuttingJobRoll::where('roll_id', $roll->id)->where('cutting_type', $type)->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))->exists())) {
-                    throw ValidationException::withMessages(['rows.'.$index.'.'.($isNeck ? 'source_body_row_id' : 'roll_id') => $isNeck ? 'This body batch is unavailable or already assigned to neck cutting.' : 'This roll is unavailable or already used for '.ucfirst($type).'.']);
+                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id]) || (! $isNeck && CuttingJobRoll::where('roll_id', $roll->id)->whereIn('cutting_type', ['body', 'rib'])->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))->lockForUpdate()->first(['id']))) {
+                    throw ValidationException::withMessages(['rows.'.$index.'.'.($isNeck ? 'source_body_row_id' : 'roll_id') => $isNeck ? 'This body batch is unavailable or already assigned to neck cutting.' : 'This roll is unavailable or already reserved for body or rib cutting.']);
                 }
                 $seen[$roll->id] = true;
                 $inputWeight = $source?->cut_weight_kg ?? $roll->weight_kg;

@@ -52,7 +52,7 @@ class CuttingJobController extends Controller
     private function form(Request $request, CuttingJob $job): View
     {
         $type = $this->type($request);
-        $available = $type === 'neck' ? collect() : ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->where('cutting_type', $type)->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id)))->orderBy('number')->get()->map(fn ($roll): array => ['id' => $roll->id, 'number' => $roll->number, 'lot_id' => $roll->dyeingJob->lot_id, 'lot' => $roll->dyeingJob->lot->lot_number, 'color' => $roll->dyeingRow->colorBlock->color->name, 'color_hex' => $roll->dyeingRow->colorBlock->color->hex, 'dia' => $roll->dyeingRow->dia, 'weight_kg' => $roll->weight_kg])->values();
+        $available = $type === 'neck' ? collect() : ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->whereIn('cutting_type', ['body', 'rib'])->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id)))->orderBy('number')->get()->map(fn ($roll): array => ['id' => $roll->id, 'number' => $roll->number, 'lot_id' => $roll->dyeingJob->lot_id, 'lot' => $roll->dyeingJob->lot->lot_number, 'color' => $roll->dyeingRow->colorBlock->color->name, 'color_hex' => $roll->dyeingRow->colorBlock->color->hex, 'dia' => $roll->dyeingRow->dia, 'weight_kg' => $roll->weight_kg])->values();
         if ($type === 'neck') {
             $availability = app(NeckAvailability::class);
             $available = CuttingJobRoll::with(['job.staff', 'lot', 'roll.dyeingRow.colorBlock.color',
@@ -108,6 +108,6 @@ class CuttingJobController extends Controller
         $this->check($request, $cuttingJob);
         $service->delete($cuttingJob);
 
-        return to_route('cutting.'.$this->type($request).'.index')->with('status', $this->type($request) === 'neck' ? 'Cutting job deleted. Body batches released for neck cutting.' : 'Cutting job deleted. Rolls released for this section.');
+        return to_route('cutting.'.$this->type($request).'.index')->with('status', $this->type($request) === 'neck' ? 'Cutting job deleted. Body batches released for neck cutting.' : 'Cutting job deleted. Returned rolls released for body or rib cutting.');
     }
 }

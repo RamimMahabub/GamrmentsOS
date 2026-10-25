@@ -61,7 +61,7 @@ class CuttingTest extends TestCase
         $this->assertSame('50.00', $row->waste_percent);
         $this->assertSame($row->waste_kg, Decimal::scale(Decimal::of($row->cutting_scrap_kg)->plus($row->remaining_fabric_kg)));
         $this->post(route('cutting.neck.store'), $this->data(['source_body_row_id' => $row->id, 'weight_per_dozen' => '1', 'remaining_fabric' => '0']))->assertSessionHasNoErrors();
-        $this->post(route('cutting.rib.store'), $this->data(['dozens' => '0.5']))->assertSessionHasNoErrors();
+        $this->post(route('cutting.rib.store'), $this->data(['roll_id' => ReturnedRoll::where('number', 'ROLL-2')->firstOrFail()->id, 'dozens' => '0.5']))->assertSessionHasNoErrors();
         $report = app(StaffProductivity::class);
         $entries = $report->entries($this->staff, '2026-10-01', '2026-10-31');
         $totals = $report->totals($entries);
@@ -261,5 +261,46 @@ class CuttingTest extends TestCase
         $data['rows'][0] = ['roll_id' => $this->roll->id, 'remaining_fabric' => '1'];
         $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.remaining_fabric');
         $this->assertDatabaseCount('cutting_jobs', 0);
+    }
+
+    public function test_body_and_rib_reserve_the_same_fabric_pool_before_and_after_results(): void
+    {
+        foreach (['body' => 'rib', 'rib' => 'body'] as $reservedSection => $otherSection) {
+            $pending = $this->data([], ['rows' => [['roll_id' => $this->roll->id]]]);
+            $this->post(route('cutting.'.$reservedSection.'.store'), $pending)->assertSessionHasNoErrors();
+            $job = CuttingJob::where('cutting_type', $reservedSection)->firstOrFail();
+            foreach (['body', 'rib'] as $section) {
+                $this->get(route('cutting.'.$section.'.create'))->assertOk()->assertViewHas('form', fn (array $form): bool => ! $form['available']->contains('id', $this->roll->id));
+            }
+            $this->post(route('cutting.'.$otherSection.'.store'), $pending)->assertSessionHasErrors('rows.0.roll_id');
+            $this->get(route('cutting.'.$reservedSection.'.edit', $job))->assertOk()->assertViewHas('form', fn (array $form): bool => $form['available']->contains('id', $this->roll->id));
+            $this->put(route('cutting.'.$reservedSection.'.update', $job), $this->data())->assertSessionHasNoErrors();
+            $this->post(route('cutting.'.$otherSection.'.store'), $this->data())->assertSessionHasErrors('rows.0.roll_id');
+            $this->get(route('cutting.'.$otherSection.'.create'))->assertViewHas('form', fn (array $form): bool => ! $form['available']->contains('id', $this->roll->id));
+            $this->assertDatabaseCount('cutting_job_rolls', 1);
+            $this->delete(route('cutting.'.$reservedSection.'.destroy', $job))->assertSessionHasNoErrors();
+            foreach (['body', 'rib'] as $section) {
+                $this->get(route('cutting.'.$section.'.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->contains('id', $this->roll->id));
+            }
+        }
+    }
+
+    public function test_edit_cannot_claim_fabric_reserved_in_the_other_section_and_removing_rows_releases_it(): void
+    {
+        $second = ReturnedRoll::where('number', 'ROLL-2')->firstOrFail();
+        $this->post(route('cutting.body.store'), $this->data())->assertSessionHasNoErrors();
+        $body = CuttingJob::where('cutting_type', 'body')->firstOrFail();
+        $ribData = $this->data(['roll_id' => $second->id]);
+        $this->post(route('cutting.rib.store'), $ribData)->assertSessionHasNoErrors();
+        $rib = CuttingJob::where('cutting_type', 'rib')->firstOrFail();
+        $this->get(route('cutting.rib.edit', $rib))->assertOk()->assertViewHas('form', fn (array $form): bool => $form['available']->contains('id', $second->id) && ! $form['available']->contains('id', $this->roll->id));
+        $this->put(route('cutting.rib.update', $rib), $this->data())->assertSessionHasErrors('rows.0.roll_id');
+        $this->put(route('cutting.body.update', $body), $ribData)->assertSessionHasErrors('rows.0.roll_id');
+        $this->assertSame($second->id, $rib->fresh('rows')->rows->first()->roll_id);
+        $this->assertSame($this->roll->id, $body->fresh('rows')->rows->first()->roll_id);
+        $this->delete(route('cutting.rib.destroy', $rib))->assertSessionHasNoErrors();
+        $this->put(route('cutting.body.update', $body), $ribData)->assertSessionHasNoErrors();
+        $this->get(route('cutting.rib.create'))->assertViewHas('form', fn (array $form): bool => $form['available']->contains('id', $this->roll->id) && ! $form['available']->contains('id', $second->id));
+        $this->post(route('cutting.rib.store'), $this->data())->assertSessionHasNoErrors();
     }
 }
