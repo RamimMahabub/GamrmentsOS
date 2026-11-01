@@ -13,25 +13,9 @@ use App\Http\Controllers\SewingJobController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\YarnController;
 use App\Http\Middleware\LoadPreferences;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('dashboard'));
-Route::get('/__maintenance/migrate', function (Request $request) {
-    abort_unless(
-        $request->header('X-Migration-Secret') !== null
-            && hash_equals((string) env('MIGRATION_SECRET'), $request->header('X-Migration-Secret')),
-        404,
-    );
-
-    Artisan::call('migrate', ['--force' => true]);
-
-    return response()->json([
-        'status' => 'migrated',
-        'output' => Artisan::output(),
-    ]);
-});
 Route::middleware(['auth', LoadPreferences::class])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     foreach (['body', 'neck', 'rib'] as $cuttingType) {
