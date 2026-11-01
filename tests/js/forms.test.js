@@ -4,6 +4,7 @@ import { registerForms } from '../../resources/js/forms.js';
 import { sum } from '../../resources/js/math.js';
 const factories={};
 registerForms({data(name,factory){ factories[name]=factory; }});
+globalThis.confirm = () => true;
 function form(name,initial) {
     const data=factories[name](initial);
     data.$watch=()=>{};
@@ -31,7 +32,7 @@ test('price and bag unit switches change display without rewriting stored values
 });
 test('changing color count preserves touched allocations and balances untouched rows',()=>{
     const data=form('dyeingForm',{lotId:'',blocks:[],jobId:null,colors:[]});
-    data.init(); data.summary={rows:[{dia:32,available_kg:'226.796',output_kg:'226.796'}]}; data.resize();
+    data.init(); data.summary={rows:[{dia:32,available_kg:'226.796',output_kg:'226.796'}]}; data.count=6; data.resize();
     assert.equal(data.blocks[0].rows[0].given_fabric_kg,'37.799');
     assert.equal(data.blocks[5].rows[0].given_fabric_kg,'37.801');
     data.blocks[0].rows[0].given_fabric_kg='30.000'; data.blocks[0].rows[0].touched=true;
@@ -43,6 +44,7 @@ test('changing color count preserves touched allocations and balances untouched 
 test('pending returns remain pending in totals and added dye mass raises the confirmation',()=>{
     const data=form('dyeingForm',{lotId:'',blocks:[],jobId:null,colors:[]});
     data.init(); data.summary={rows:[{dia:32,available_kg:'200.000'}]}; data.count=2; data.resize();
+    data.allRows().forEach(row => { row.rolls=[]; row.returned_fabric_kg=''; });
     const first=data.blocks[0].rows[0]; first.returned_fabric_kg='110.000';
     assert.equal(data.excessReturn(),true);
     assert.equal(data.rowWaste(first),'-10.00');
@@ -70,6 +72,75 @@ test('returned rolls total mixed units and update after removal',()=>{
     assert.equal(row.returned_fabric_kg,'');
 });
 
+test('new returned rolls receive a DIA, color, and sequence number',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[{color:'Black',rows:[{dia:32,rolls:[]}] }],jobId:null,colors:[]});
+    const row=data.blocks[0].rows[0];
+    row.returned_fabric_kg='37.421';
+    data.addRoll(row,data.blocks[0],0);
+    data.addRoll(row,data.blocks[0],0);
+    assert.equal(row.rolls[0].number,'32BLACK01');
+    assert.equal(row.rolls[1].number,'32BLACK02');
+    assert.equal(row.rolls[0].colorIndex,0);
+    assert.equal(row.rolls[1].colorIndex,0);
+    assert.equal(row.rolls[0].weight,'18.71');
+    assert.equal(row.rolls[1].weight,'18.711');
+    assert.equal(row.returned_fabric_kg,'37.421');
+});
+
+test('new color and DIA rows receive one default roll with allocated weight',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[],jobId:null,colors:[]});
+    data.init();
+    data.summary={rows:[{dia:32,available_kg:'100.000'}]};
+    data.count=6;
+    data.resize();
+    data.blocks[0].color='Black';
+    data.ensureDefaultRolls(data.blocks[0]);
+    const row=data.blocks[0].rows[0];
+    assert.equal(row.rolls.length,1);
+    assert.equal(row.rolls[0].number,'32BLACK01');
+    assert.equal(row.rolls[0].weight,'16.666');
+    assert.equal(row.returned_fabric_kg,'16.666');
+});
+
+test('default roll does not require a color and follows allocated input until edited',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[],jobId:null,colors:[]});
+    data.init();
+    data.summary={rows:[{dia:32,available_kg:'100.000'}]};
+    data.count=6;
+    data.resize();
+    const row=data.blocks[0].rows[0];
+    assert.equal(row.rolls.length,1);
+    assert.equal(row.rolls[0].number,'32ROLL01');
+    assert.equal(row.rolls[0].weight,'16.666');
+    row.given_fabric_kg='20.000';
+    data.ensureDefaultRolls(data.blocks[0]);
+    assert.equal(row.rolls[0].weight,'20.000');
+    row.rolls[0].weight='12';
+    row.rolls[0].autoWeight=false;
+    row.given_fabric_kg='30.000';
+    data.ensureDefaultRolls(data.blocks[0]);
+    assert.equal(row.rolls[0].weight,'12');
+});
+
+test('editing returned total updates the editable roll weight',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[{color:'White',rows:[{dia:32,given_fabric_kg:'20.000',returned_fabric_kg:'20.000',rolls:[{number:'32WHITE01',weight:'20.000',unit:'kg'}]}]}],jobId:null,colors:[]});
+    const row=data.blocks[0].rows[0];
+    row.returned_fabric_kg='18.500';
+    data.syncRollsToReturned(row);
+    assert.equal(row.rolls[0].weight,'18.500');
+    assert.equal(row.returned_fabric_kg,'18.500');
+});
+
+test('existing returned weight becomes the first editable roll',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[{color:'Black',rows:[{dia:32,returned_fabric_kg:'37.421',rolls:[]}] }],jobId:null,colors:[]});
+    data.init();
+    const row=data.blocks[0].rows[0];
+    assert.equal(row.rolls.length,1);
+    assert.equal(row.rolls[0].number,'32BLACK01');
+    assert.equal(row.rolls[0].weight,'37.421');
+    assert.equal(row.returned_fabric_kg,'37.421');
+});
+
 test('selecting a roll color moves its weight without changing the job total',()=>{
     const source={dia:32,rolls:[{number:'A',weight:'20',unit:'lb'}]};
     const target={dia:32,rolls:[{number:'B',weight:'10',unit:'kg'}]};
@@ -81,4 +152,14 @@ test('selecting a roll color moves its weight without changing the job total',()
     assert.equal(target.returned_fabric_kg,'19.072');
     assert.equal(target.rolls[1].number,'A');
     assert.equal(sum(data.allRows().map(row=>row.returned_fabric_kg)),before);
+});
+
+test('roll color defaults to its containing color table',()=>{
+    const data=form('dyeingForm',{lotId:'',blocks:[
+        {color:'Black',rows:[{dia:32,rolls:[{number:'32BLACK01',weight:'10',unit:'kg'}]}]},
+        {color:'White',rows:[{dia:32,rolls:[{number:'32WHITE01',weight:'10',unit:'kg'}]}]},
+    ],jobId:null,colors:[]});
+    data.init();
+    assert.equal(data.blocks[0].rows[0].rolls[0].colorIndex,0);
+    assert.equal(data.blocks[1].rows[0].rolls[0].colorIndex,1);
 });

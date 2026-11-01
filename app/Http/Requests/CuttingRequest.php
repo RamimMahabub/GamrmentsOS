@@ -28,17 +28,15 @@ class CuttingRequest extends ManufacturingRequest
 
     public function rules(): array
     {
-        $isNeck = $this->route()->defaults['cutting_type'] === 'neck';
-
         return [
             'cutting_date' => ['required', 'date_format:Y-m-d'], 'staff_id' => ['required', 'integer', Rule::exists('staffs', 'id')->where('is_active', true)], 'notes' => ['nullable', 'string', 'max:10000'],
             'rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*' => ['required', 'array'],
-            'rows.*.roll_id' => $isNeck ? ['exclude'] : ['required', 'integer', 'distinct', 'exists:returned_rolls,id'],
-            'rows.*.source_body_row_id' => $isNeck ? ['required', 'integer', 'distinct', 'exists:cutting_job_rolls,id'] : ['exclude'],
-            'rows.*.dozens' => ['nullable', ...($isNeck ? ['required_without:rows.*.quantity_mode'] : ['required_with:rows.*.weight_per_dozen']), new DecimalInput(3, true, '999999999.999')],
-            'rows.*.quantity_mode' => $isNeck ? ['nullable', Rule::in(['dozen', 'pieces', 'dozen_pieces'])] : ['exclude'],
-            'rows.*.quantity_dozens' => $isNeck ? ['nullable', 'required_if:rows.*.quantity_mode,dozen,dozen_pieces', new DecimalInput(0, false, '999999999')] : ['exclude'],
-            'rows.*.quantity_pieces' => $isNeck ? ['nullable', 'required_if:rows.*.quantity_mode,pieces,dozen_pieces', new DecimalInput(0, false, '11999999999')] : ['exclude'],
+            'rows.*.roll_id' => $this->route()->defaults['cutting_type'] === 'neck' ? ['exclude'] : ['required', 'integer', 'distinct', 'exists:returned_rolls,id'],
+            'rows.*.source_body_row_id' => $this->route()->defaults['cutting_type'] === 'neck' ? ['required', 'integer', 'distinct', 'exists:cutting_job_rolls,id'] : ['exclude'],
+            'rows.*.dozens' => ['nullable', new DecimalInput(3, true, '999999999.999')],
+            'rows.*.quantity_mode' => ['nullable', Rule::in(['dozen', 'pieces', 'dozen_pieces'])],
+            'rows.*.quantity_dozens' => ['nullable', 'required_if:rows.*.quantity_mode,dozen,dozen_pieces', new DecimalInput(0, false, '999999999')],
+            'rows.*.quantity_pieces' => ['nullable', 'required_if:rows.*.quantity_mode,pieces,dozen_pieces', new DecimalInput(0, false, '11999999999')],
             'rows.*.weight_per_dozen' => ['nullable', new DecimalInput(6, true, '999999999.999999')],
             'rows.*.weight_unit' => ['required', Rule::in(['kg', 'lb'])], 'rows.*.remaining_fabric' => ['required', new DecimalInput(3, false, '999999999.999')],
         ];

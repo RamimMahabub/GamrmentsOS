@@ -9,6 +9,7 @@ use App\Http\Controllers\KnittingJobController;
 use App\Http\Controllers\LotController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SewingJobController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\YarnController;
 use App\Http\Middleware\LoadPreferences;
@@ -30,6 +31,7 @@ Route::middleware(['auth', LoadPreferences::class])->group(function (): void {
     Route::resource('companies', CompanyController::class);
     Route::resource('knitting-jobs', KnittingJobController::class);
     Route::resource('dyeing-jobs', DyeingJobController::class);
+    Route::resource('sewing-jobs', SewingJobController::class);
     Route::get('/lots/{lot}', [LotController::class, 'show'])->name('lots.show');
     Route::get('/api/lots/preview', [CalculationController::class, 'preview'])->name('lots.preview');
     Route::get('/api/lots/{lot}/fabric', [CalculationController::class, 'fabric'])->name('lots.fabric');

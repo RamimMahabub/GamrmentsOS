@@ -7,7 +7,9 @@ use App\Http\Requests\YarnRequest;
 use App\Models\Setting;
 use App\Models\Yarn;
 use App\Modules\Yarn\StockLedger;
+use App\Modules\Yarn\UnitConverter;
 use App\Modules\Yarn\YarnService;
+use App\Support\Decimal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,7 +23,44 @@ class YarnController extends Controller
             $query->where('name', 'like', '%'.$request->q.'%')->orWhere('yarn_type', 'like', '%'.$request->q.'%')->orWhere('country_of_origin', 'like', '%'.$request->q.'%');
         }))->orderBy($sort, $request->direction === 'desc' ? 'desc' : 'asc')->paginate(25)->withQueryString();
 
-        return view('yarns.index', compact('yarns'));
+        $allYarns = Yarn::withSum('movements as available_kg', 'quantity_kg')->get();
+        $totalKg = '0';
+        $totalValuation = '0';
+        $totalBags = '0';
+        $lowStockCount = 0;
+        $inStockCount = 0;
+
+        foreach ($allYarns as $y) {
+            $avail = (string) ($y->available_kg ?? '0');
+            $totalKg = (string) Decimal::of($totalKg)->plus($avail);
+
+            // Valuation = available_kg * price_per_kg
+            $val = Decimal::of($avail)->multipliedBy($y->price_per_kg ?? '0');
+            $totalValuation = (string) Decimal::of($totalValuation)->plus($val);
+
+            // Bags
+            $bags = UnitConverter::bags($avail, $y->bag_size_kg);
+            $totalBags = (string) Decimal::of($totalBags)->plus($bags);
+
+            if (Decimal::of($avail)->isZero() || Decimal::of($avail)->isNegative()) {
+                $lowStockCount++;
+            } elseif (Decimal::of($avail)->isLessThan('100')) {
+                $lowStockCount++;
+            } else {
+                $inStockCount++;
+            }
+        }
+
+        $metrics = [
+            'total_kg' => $totalKg,
+            'total_valuation' => $totalValuation,
+            'total_bags' => $totalBags,
+            'total_varieties' => $allYarns->count(),
+            'low_stock_count' => $lowStockCount,
+            'in_stock_count' => $inStockCount,
+        ];
+
+        return view('yarns.index', compact('yarns', 'metrics'));
     }
 
     public function create(): View

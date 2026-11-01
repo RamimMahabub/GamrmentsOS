@@ -96,9 +96,16 @@ Alpine.data('knittingForm', initial => ({
 }));
 
 Alpine.data('dyeingForm', initial => ({
-    ...initial, count: initial.blocks.length || 6, summary: null, loading: false, loadError: '', sequence: 0,
+    ...initial, count: initial.blocks.length ? initial.blocks.length : '', summary: null, loading: false, loadError: '', sequence: 0,
     init() {
-        this.blocks.forEach(b => b.rows.forEach(r => { r.touched = true; r.rolls ??= []; }));
+        this.blocks.forEach((block, blockIndex) => block.rows.forEach(row => {
+            row.touched = true;
+            row.rolls ??= [];
+            row.rolls.forEach(roll => { roll.colorIndex ??= blockIndex; });
+            if (!row.rolls.length && safe(() => decimal(row.returned_fabric_kg).gt('0'))) {
+                row.rolls.push({number: this.nextRollNumber(row, block), weight: row.returned_fabric_kg, unit: 'kg', autoNumber: true, autoWeight: false, colorIndex: blockIndex});
+            }
+        }));
         if (this.lotId) this.loadLot(true);
     },
     async loadLot(preserve = false) {
@@ -135,8 +142,59 @@ Alpine.data('dyeingForm', initial => ({
             const portions = split(Big(remaining).lt('0') ? '0' : remaining, untouched.length);
             untouched.forEach((row, index) => row.given_fabric_kg = portions[index]);
         });
+        this.blocks.forEach((block, blockIndex) => this.ensureDefaultRolls(block, blockIndex));
     },
-    addRoll(row) { row.rolls ??= []; row.rolls.push({number: '', weight: '', unit: 'kg'}); this.updateRollTotal(row); },
+    ensureDefaultRolls(block, blockIndex) {
+        block.rows.forEach(row => {
+            if (!row.rolls?.length && safe(() => decimal(row.given_fabric_kg).gt('0'))) {
+                row.rolls = [{number: this.nextRollNumber(row, block), weight: row.given_fabric_kg, unit: 'kg', autoNumber: true, autoWeight: true, colorIndex: blockIndex}];
+                this.updateRollTotal(row);
+            } else if (row.rolls?.length === 1) {
+                const roll = row.rolls[0];
+                roll.colorIndex ??= blockIndex;
+                if (roll.autoNumber) roll.number = this.nextRollNumber(row, block);
+                if (roll.autoWeight) {
+                    roll.weight = row.given_fabric_kg;
+                    roll.unit = 'kg';
+                    this.updateRollTotal(row);
+                }
+            }
+        });
+    },
+    rollPrefix(row, block) {
+        const color = String(block?.color ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase() || 'ROLL';
+        return String(row.dia) + color;
+    },
+    nextRollNumber(row, block) {
+        const prefix = this.rollPrefix(row, block);
+        const numbers = this.allRows().flatMap(currentRow => currentRow.rolls ?? []).map(roll => roll.number);
+        let sequence = 1;
+        let number = prefix + String(sequence).padStart(2, '0');
+        while (numbers.includes(number)) {
+            sequence++;
+            number = prefix + String(sequence).padStart(2, '0');
+        }
+        return number;
+    },
+    distributeRollWeights(row, total) {
+        const portions = split(total, row.rolls.length);
+        row.rolls.forEach((roll, index) => {
+            roll.weight = fromKg(portions[index], roll.unit);
+        });
+        this.updateRollTotal(row);
+    },
+    addRoll(row, block, blockIndex) {
+        row.rolls ??= [];
+        const total = safe(() => row.rolls.length
+            ? sum(row.rolls.map(roll => toKg(roll.weight, roll.unit)))
+            : decimal(row.returned_fabric_kg || '0').toString());
+        row.rolls.push({number: this.nextRollNumber(row, block), weight: '', unit: 'kg', autoNumber: true, autoWeight: false, colorIndex: blockIndex});
+        if (total !== null) {
+            this.distributeRollWeights(row, total);
+        } else {
+            this.updateRollTotal(row);
+        }
+    },
     moveRoll(source, index, targetIndex) {
         const target = this.blocks[Number(targetIndex)]?.rows.find(row => String(row.dia) === String(source.dia));
         if (!target || target === source) return;
@@ -145,12 +203,24 @@ Alpine.data('dyeingForm', initial => ({
             return;
         }
         target.rolls ??= [];
-        target.rolls.push(source.rolls.splice(index, 1)[0]);
+        const moved = source.rolls.splice(index, 1)[0];
+        moved.colorIndex = Number(targetIndex);
+        target.rolls.push(moved);
         this.updateRollTotal(source);
         if (!source.rolls.length) source.returned_fabric_kg = '0.000';
         this.updateRollTotal(target);
     },
     removeRoll(row, index) { row.rolls.splice(index, 1); this.updateRollTotal(row); },
+    syncRollsToReturned(row) {
+        if (!row.rolls?.length || safe(() => decimal(row.returned_fabric_kg).lt('0')) || safe(() => decimal(row.returned_fabric_kg).eq('0'))) return;
+        if (row.rolls.length === 1) {
+            row.rolls[0].weight = row.returned_fabric_kg;
+            row.rolls[0].unit = 'kg';
+            row.rolls[0].autoWeight = false;
+            return;
+        }
+        this.distributeRollWeights(row, row.returned_fabric_kg);
+    },
     updateRollTotal(row) {
         row.returned_fabric_kg = row.rolls.length ? (safe(() => sum(row.rolls.map(roll => toKg(roll.weight, roll.unit)))) ?? '') : '';
     },

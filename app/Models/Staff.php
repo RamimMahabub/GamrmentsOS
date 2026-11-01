@@ -19,6 +19,11 @@ class Staff extends Model
         return $this->hasMany(CuttingJob::class);
     }
 
+    public function sewingJobs(): HasMany
+    {
+        return $this->hasMany(SewingJob::class);
+    }
+
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];

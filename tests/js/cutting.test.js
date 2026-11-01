@@ -233,6 +233,14 @@ test('automatic neck weight follows exact mixed pieces and zero-weight allocatio
  assert.equal(zero.waste_percent, '0.00'); assert.equal(zero.invalid, false);
 });
 
+test('body rows support combined dozen and piece quantities', () => {
+ const source = {...roll, weight_kg: '10.000', lot_id: 1, number: 'R-1'};
+ const row = {roll_id: 1, quantity_mode: 'dozen_pieces', quantity_dozens: '2', quantity_pieces: '4', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0'};
+ const form = cuttingFactories.cuttingForm({available: [source], rows: [row]});
+ assert.equal(form.quantity(row), '2 dozen 4 pc');
+ assert.equal(form.values(row).pieces, '28.000');
+ assert.equal(form.invalid, false);
+});
 
 test('automatic rate outside storage precision is invalid before submit', () => {
  const result = cuttingRow({dozens: '0.001', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0'}, {...roll, weight_kg: '100000000000'});

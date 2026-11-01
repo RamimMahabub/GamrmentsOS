@@ -42,4 +42,9 @@ class CuttingJobRoll extends Model
     {
         return $this->hasMany(self::class, 'source_body_row_id');
     }
+
+    public function sewingRows(): HasMany
+    {
+        return $this->hasMany(SewingJobRow::class, 'source_body_row_id');
+    }
 }

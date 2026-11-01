@@ -33,7 +33,7 @@ export function cuttingInputWeight(row, roll) {
 }
 
 export function cuttingRow(row, roll) {
-    const pieces = roll.source_body_row_id ? cuttingPieces(row) : decimal(row.dozens).times('12');
+    const pieces = row.quantity_mode || roll.source_body_row_id ? cuttingPieces(row) : decimal(row.dozens).times('12');
     const dozens = pieces.div('12');
     const automatic = !String(row.weight_per_dozen ?? '').trim();
     const remaining = new Big(toKg(row.remaining_fabric || '0', row.weight_unit));
@@ -134,8 +134,8 @@ export function registerCutting(Alpine) {
                 if (!groups.has(key)) groups.set(key, {key, lot: source.lot, color: source.color, hex: source.color_hex || '#686a74', dia: source.dia, count: 0, hasDozens: false, pieces: new Big('0')});
                 const group = groups.get(key);
                 group.count++;
-                group.hasDozens ||= this.isNeck || String(row.dozens || '').trim() !== '';
-                try { group.pieces = group.pieces.plus(this.isNeck ? cuttingPieces(row) : decimal(row.dozens || '0').times('12')); } catch { /* Incomplete quantities do not contribute yet. */ }
+                group.hasDozens ||= this.isNeck || row.quantity_mode || String(row.dozens || '').trim() !== '';
+                try { group.pieces = group.pieces.plus(this.isNeck || row.quantity_mode ? cuttingPieces(row) : decimal(row.dozens || '0').times('12')); } catch { /* Incomplete quantities do not contribute yet. */ }
             }
             return [...groups.values()].map(group => ({...group, dozens: group.pieces.div('12').toFixed(3), quantity: quantityText(group.pieces)}));
         },
@@ -154,7 +154,7 @@ export function registerCutting(Alpine) {
                 try { return cuttingRow(row, this.roll(row)).invalid; } catch { return true; }
             });
         },
-        pending(row) { return !this.isNeck && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim(); },
+        pending(row) { return !this.isNeck && !row.quantity_mode && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim(); },
         display: format,
     }));
 }

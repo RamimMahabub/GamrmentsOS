@@ -23,6 +23,11 @@ class Lot extends AuditedModel
         return $this->hasMany(CuttingJobRoll::class);
     }
 
+    public function sewingRows(): HasMany
+    {
+        return $this->hasMany(SewingJobRow::class);
+    }
+
     public function dyeingJobs(): HasMany
     {
         return $this->hasMany(DyeingJob::class);

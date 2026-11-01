@@ -59,6 +59,214 @@
     .panel, .metric { background: #fff; border: 1px solid #e4e4eb; border-radius: 22px; box-shadow: 0 3px 12px #24243904; }
     .panel-head { @apply flex flex-wrap items-center justify-between gap-4 px-6 py-5; border-bottom: 1px solid #ebebf0; }
     .panel-head h2 { color: inherit; }
+    .dyeing-color-panel { overflow: hidden; border-left: 6px solid #cbd5a0; }
+    .dyeing-color-even { border-left-color: #9caf4a; }
+    .dyeing-color-odd { border-left-color: #8aa8c2; }
+    .dyeing-color-head { background: linear-gradient(90deg, #f5f8e7 0%, #fff 58%); }
+    .dyeing-color-odd .dyeing-color-head { background: linear-gradient(90deg, #eef5fa 0%, #fff 58%); }
+    .dyeing-color-kicker { @apply mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted; }
+    .dyeing-spreadsheet .table-wrap { max-height: 78vh; }
+    .dyeing-spreadsheet th, .dyeing-spreadsheet td { padding: 0.65rem 0.85rem; }
+    .dyeing-spreadsheet-group th { position: sticky; top: 0; z-index: 9; color: #394513; background: #f0f5df; border-top: 2px solid #dfe8bf; border-bottom: 1px solid #dfe8bf; }
+    .dyeing-spreadsheet-group-odd th { color: #29465f; background: #eaf3f9; border-color: #caddea; }
+    .dyeing-spreadsheet-color-dot { display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.5rem; border: 1px solid #b9bec7; border-radius: 999px; vertical-align: middle; }
+    .dyeing-spreadsheet-color { font-weight: 600; color: #555b66; }
+    .dyeing-spreadsheet-lines { display: grid; gap: 0.15rem; white-space: nowrap; }
+    .dyeing-spreadsheet-subtotal td { padding-top: 0.55rem; padding-bottom: 0.55rem; color: #394513; background: #f7f9ed; border-top: 1px solid #dfe8bf; font-weight: 600; }
+    .dyeing-entry-sheet .table-wrap { max-height: 72vh; }
+    .dyeing-entry-sheet .data-table th, .dyeing-entry-sheet .data-table td { padding: 0.65rem 0.8rem; }
+    .dyeing-entry-sheet .data-table input, .dyeing-entry-sheet .data-table select { min-width: 90px; max-width: 150px; }
+    .dyeing-entry-rolls { min-width: 430px; }
+    .dyeing-entry-roll-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; color: #737580; font-size: 0.75rem; }
+    .dyeing-entry-roll { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 0.65fr auto; gap: 0.35rem; align-items: center; padding: 0.25rem 0; border-top: 1px solid #efeff3; }
+    .dyeing-entry-roll .btn { white-space: nowrap; }
+    .btn-xs { min-height: 30px; padding: 0.3rem 0.55rem; font-size: 0.7rem; border-radius: 8px; }
+    .cutting-spreadsheet .data-table th, .cutting-spreadsheet .data-table td, .cutting-spreadsheet-panel .data-table th, .cutting-spreadsheet-panel .data-table td { padding: 0.65rem 0.8rem; }
+    .cutting-spreadsheet-panel .table-wrap { max-height: 32rem; }
+    .cutting-spreadsheet tbody tr:nth-child(even), .cutting-spreadsheet-panel tbody tr:nth-child(even) { background: #fbfbfd; }
+    .staff-profile-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+    .staff-avatar { display: inline-flex; height: 3.75rem; width: 3.75rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 1.25rem; color: #394513; background: linear-gradient(135deg, #eff6cc, #d5ff27); font-size: 1.35rem; font-weight: 700; }
+    .status-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: .3rem .65rem; font-size: .7rem; font-weight: 700; }
+    .status-badge-active { color: #526500; background: #eff6cc; border: 1px solid #ccd994; }
+    .status-badge-inactive { color: #b52c4a; background: #fff0f3; border: 1px solid #edb5c1; }
+    .staff-filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.25rem 1.5rem; }
+    .staff-filter-title { display: flex; align-items: center; gap: .75rem; }
+    .dashboard-icon { display: inline-flex; height: 2rem; width: 2rem; align-items: center; justify-content: center; border-radius: .65rem; color: #526500; background: #eff6cc; font-weight: 700; }
+    .staff-kpi { display: flex; min-height: 9.5rem; flex-direction: column; justify-content: center; border: 1px solid #e4e4eb; border-radius: 1.25rem; background: #fff; padding: 1.25rem 1.4rem; box-shadow: 0 3px 12px #24243904; }
+    .staff-kpi-primary { color: #f9faef; background: #29320c; border-color: #29320c; }
+    .staff-kpi-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #737580; }
+    .staff-kpi-primary .staff-kpi-label, .staff-kpi-primary span, .staff-kpi-primary small { color: #dce7a6; }
+    .staff-kpi strong { margin-top: .45rem; font-size: 1.9rem; font-weight: 700; letter-spacing: -.05em; line-height: 1.1; }
+    .staff-kpi span:not(.staff-kpi-label) { color: #686a74; font-size: .8rem; }
+    .staff-kpi small { margin-top: .65rem; color: #838591; font-size: .75rem; }
+    .staff-note { display: flex; align-items: center; gap: .75rem; border: 1px solid #e8d294; border-radius: 1rem; padding: .85rem 1rem; color: #866016; background: #fff7df; font-size: .78rem; }
+    .staff-note p { margin: 0; }
+    .activity-count { border-radius: 999px; padding: .35rem .7rem; color: #526500; background: #eff6cc; font-size: .72rem; font-weight: 700; }
+    .staff-stage-card { min-height: 12.5rem; padding: 1.15rem; border-top: 3px solid #ccd994; }
+    .staff-stage-neck { border-top-color: #9caf4a; }
+    .staff-stage-rib { border-top-color: #8aa8c2; }
+    .stage-dot { height: .65rem; width: .65rem; border-radius: 999px; background: #ccd994; }
+    .staff-stage-neck .stage-dot { background: #9caf4a; }
+    .staff-stage-rib .stage-dot { background: #8aa8c2; }
+    .staff-stage-main { margin: 1.1rem 0 .8rem; color: #202124; font-size: 1.45rem; font-weight: 700; }
+    .staff-stage-main small { color: #686a74; font-size: .75rem; font-weight: 500; }
+    .staff-stage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem .8rem; color: #686a74; font-size: .7rem; }
+    .staff-stage-grid span { display: flex; flex-direction: column; gap: .1rem; }
+    .staff-stage-grid b { color: #202124; font-weight: 600; }
+    .staff-activity-panel { overflow: hidden; }
+    .sewing-picker-table tbody tr { cursor: pointer; }
+    .sewing-source-selected { background: #f0f5df !important; }
+    .sewing-picker-table { min-width: 930px; table-layout: fixed; }
+    .sewing-picker-table th, .sewing-picker-table td { padding: .8rem 1rem; }
+    .sewing-picker-table th { vertical-align: middle; }
+    .sewing-picker-table th:nth-child(1), .sewing-picker-table td:nth-child(1) { width: 4.5rem; }
+    .sewing-picker-table th:nth-child(2), .sewing-picker-table td:nth-child(2) { width: 16%; }
+    .sewing-picker-table th:nth-child(3), .sewing-picker-table td:nth-child(3) { width: 16%; }
+    .sewing-picker-table th:nth-child(4), .sewing-picker-table td:nth-child(4) { width: 10%; }
+    .sewing-picker-table th:nth-child(n+5), .sewing-picker-table td:nth-child(n+5) { width: 18%; }
+    .sewing-picker-table tbody tr { border-left: 3px solid transparent; }
+    .sewing-picker-table tbody tr:hover { background: #fafaf2; border-left-color: #ccd994; }
+    .sewing-picker-table tbody tr.sewing-source-selected { border-left-color: #526500; }
+    .sewing-select-column { text-align: center !important; }
+    .sewing-picker-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; margin: 0 auto; display: block; }
+    .sewing-lot { color: #202124; font-weight: 650; letter-spacing: -.01em; }
+    .sewing-color { display: inline-flex; align-items: center; gap: .55rem; font-weight: 600; }
+    .sewing-color-dot { height: .7rem; width: .7rem; border: 1px solid #c5c7ce; border-radius: 999px; background: #d8d9de; }
+    .sewing-quantity { display: inline-flex; min-width: 7rem; flex-direction: column; align-items: flex-end; gap: .15rem; }
+    .sewing-quantity strong { color: #202124; font-size: .9rem; font-weight: 700; }
+    .sewing-quantity small { color: #686a74; font-size: .72rem; white-space: nowrap; }
+    .sewing-ready-heading { color: #526500 !important; }
+    .sewing-ready-cell { background: #f7f9ed; }
+    .sewing-source-selected .sewing-ready-cell { background: #e7efc5; }
+    .sewing-color-group-row th { position: static; padding: .7rem 1rem; color: #394513; background: #f0f5df; border-top: 2px solid #dfe8bf; border-bottom: 1px solid #dfe8bf; text-align: left; }
+    .sewing-color-group-row .sewing-color-dot { background: #ccd994; border-color: #9caf4a; }
+    .sewing-color-count { float: right; color: #686a74; font-size: .72rem; font-weight: 500; }
+    .sewing-color-inline { color: #686a74; font-weight: 500; }
+    .sewing-color-section + .sewing-color-section { border-top: 1px solid #dedee5; }
+    .sewing-color-section-heading { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1rem; color: #394513; background: #f0f5df; border-bottom: 1px solid #dfe8bf; }
+    .sewing-color-section .sewing-picker-table { min-width: 0; }
+    .sewing-color-section .sewing-picker-table th:nth-child(1), .sewing-color-section .sewing-picker-table td:nth-child(1) { width: 4.5rem; }
+    .sewing-color-section .sewing-picker-table th:nth-child(2), .sewing-color-section .sewing-picker-table td:nth-child(2) { width: 22%; }
+    .sewing-color-section .sewing-picker-table th:nth-child(3), .sewing-color-section .sewing-picker-table td:nth-child(3) { width: 14%; }
+    .sewing-color-section .sewing-picker-table th:nth-child(n+4), .sewing-color-section .sewing-picker-table td:nth-child(n+4) { width: 20%; }
+    .sewing-entry-table { min-width: 980px; }
+    .sewing-entry-table th, .sewing-entry-table td { padding: .8rem; }
+    .sewing-entry-table thead th { text-align: center; }
+    .sewing-entry-table thead th:first-child, .sewing-entry-table tbody td:first-child { text-align: left; }
+    .sewing-entry-table th small { color: #838591; font-size: .68rem; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .sewing-entry-table input { min-width: 100px; max-width: 125px; text-align: right; }
+    .sewing-quantity-pair { display: grid; grid-template-columns: minmax(0, 1fr) 4.5rem; gap: .35rem; }
+    .sewing-quantity-pair input { min-width: 0; width: 100%; }
+    .sewing-entry-panel { overflow: hidden; }
+    .sewing-stage-panel { overflow: hidden; }
+    .sewing-stage-header { display: flex; align-items: flex-start; gap: .9rem; padding: 1.4rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
+    .sewing-stage-icon { display: inline-flex; height: 2.25rem; width: 2.25rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: .75rem; color: #fff; background: #526500; font-size: 1.2rem; font-weight: 800; }
+    .sewing-eyebrow { color: #526500; font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    .sewing-stage-header h2 { margin: .15rem 0 0; color: #202124; font-size: 1.15rem; font-weight: 750; }
+    .sewing-stage-path { display: flex; align-items: center; gap: .5rem; overflow-x: auto; padding: .85rem 1.5rem; color: #9799a3; background: #fafafc; border-bottom: 1px solid #e8e8ee; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+    .sewing-stage-path a { color: #777984; }
+    .sewing-stage-path a.active { color: #526500; }
+    .sewing-stage-table { min-width: 760px; }
+    .sewing-stage-table input { max-width: 9rem; }
+    .sewing-color-queue { display: grid; gap: 1rem; padding: 1rem 1.25rem 1.25rem; background: #f8f8fa; }
+    .sewing-color-queue-section { overflow: hidden; border: 1px solid #dedee5; border-radius: 1rem; background: #fff; }
+    .sewing-color-queue-section .table-wrap { max-height: none; border-radius: 0; }
+    .sewing-color-queue-section .sewing-stage-table { min-width: 760px; table-layout: fixed; }
+    .sewing-color-queue-section .sewing-stage-table td, .sewing-color-queue-section .sewing-stage-table th { padding: .8rem 1rem; }
+    .sewing-color-queue-section .sewing-source-selected { background: #f0f5df !important; }
+    .sewing-color-queue-section .sewing-quantity-pair { min-width: 14rem; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(1), .sewing-color-queue-section .sewing-stage-table td:nth-child(1) { width: 4.5rem; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(2), .sewing-color-queue-section .sewing-stage-table td:nth-child(2) { width: 15%; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(3), .sewing-color-queue-section .sewing-stage-table td:nth-child(3) { width: 11%; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(4), .sewing-color-queue-section .sewing-stage-table td:nth-child(4) { width: 17%; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(5), .sewing-color-queue-section .sewing-stage-table td:nth-child(5) { width: 28%; }
+    .sewing-color-queue-section .sewing-stage-table th:nth-child(6), .sewing-color-queue-section .sewing-stage-table td:nth-child(6) { width: 14%; }
+    .sewing-available-quantity { display: flex; flex-direction: column; align-items: flex-end; gap: .15rem; }
+    .sewing-available-quantity strong { color: #526500; font-size: .9rem; }
+    .sewing-available-quantity span { color: #686a74; font-size: .72rem; }
+    .sewing-stage-quantity-input { width: 100%; max-width: 9rem !important; text-align: right; }
+    .sewing-stage-table th small { color: #838591; font-size: .68rem; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .sewing-compact-quantity { display: flex; align-items: flex-end; justify-content: center; gap: .45rem; }
+    .sewing-compact-quantity label { display: flex; min-width: 5.2rem; flex-direction: column; gap: .2rem; color: #686a74; font-size: .68rem; font-weight: 650; text-align: left; }
+    .sewing-compact-quantity label span { white-space: nowrap; }
+    .sewing-compact-quantity b { padding-bottom: .6rem; color: #9b9da7; font-size: .8rem; }
+    .sewing-compact-quantity .sewing-stage-quantity-input { max-width: 5.2rem !important; }
+    .sewing-stage-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; margin: 0 auto; display: block; }
+    .sewing-station-board { margin-bottom: 1.5rem; border: 1px solid #dedee5; border-radius: 1.25rem; overflow: hidden; background: #fff; box-shadow: 0 5px 18px #24243908; }
+    .sewing-station-board-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
+    .sewing-station-board-heading h2 { margin: .15rem 0 .25rem; color: #202124; font-size: 1.1rem; font-weight: 750; }
+    .sewing-flow-label { padding-top: .5rem; color: #777984; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+    .sewing-flow-label b { margin: 0 .3rem; color: #ccd994; }
+    .sewing-station-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; padding: 1rem; background: #f8f8fa; }
+    .sewing-station-card { position: relative; display: flex; min-height: 11rem; flex-direction: column; align-items: flex-start; border: 1px solid #e1e2e8; border-radius: 1rem; padding: 1rem; color: inherit; background: #fff; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+    .sewing-station-card:hover { border-color: #b7c875; box-shadow: 0 6px 16px #52650018; transform: translateY(-2px); }
+    .sewing-station-card.active { border-color: #9caf4a; background: #f7f9ed; box-shadow: 0 5px 16px #52650018; }
+    .sewing-station-card { text-align: left; cursor: pointer; }
+    .sewing-station-number { display: inline-flex; height: 1.65rem; width: 1.65rem; align-items: center; justify-content: center; border-radius: 999px; color: #526500; background: #f0f5df; font-size: .68rem; font-weight: 800; }
+    .sewing-station-icon { display: inline-flex; margin: .9rem 0 .7rem; color: #526500; }
+    .sewing-station-card strong { color: #292d1b; font-size: .84rem; letter-spacing: .03em; }
+    .sewing-station-card > span:not(.sewing-station-number):not(.sewing-station-icon) { margin-top: .3rem; color: #777984; font-size: .7rem; line-height: 1.4; }
+    .sewing-station-action { margin-top: auto; padding-top: .8rem; color: #526500; font-size: .7rem; }
+    .sewing-inline-stations { padding: 1rem; background: #f8f8fa; border-top: 1px solid #e8e8ee; }
+    .sewing-inline-station > .sewing-inline-form { display: block; }
+    .sewing-inline-station .sewing-stage-panel { box-shadow: none; }
+    .sewing-station-history { margin-top: 1rem; overflow: hidden; }
+    .sewing-inline-meta { display: grid; grid-template-columns: minmax(11rem, .8fr) minmax(14rem, 1fr) minmax(16rem, 1.4fr); gap: 1rem; margin-bottom: 1rem; padding: 1rem 1.25rem; border: 1px solid #dedee5; border-radius: 1rem; background: #fff; }
+    .sewing-inline-meta .field { font-size: .72rem; }
+    .sewing-inline-notes { min-width: 0; }
+    @media (max-width: 720px) { .sewing-inline-meta { grid-template-columns: 1fr; gap: .75rem; } }
+    .sewing-inline-batch-color { margin-bottom: .2rem; color: #526500; font-size: .68rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .sewing-overview { margin-bottom: 1.5rem; border: 1px solid #dedee5; border-radius: 1.25rem; overflow: hidden; background: #fff; box-shadow: 0 5px 18px #24243908; }
+    .sewing-overview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
+    .sewing-overview-head h2 { margin: .15rem 0 .25rem; color: #202124; font-size: 1.1rem; font-weight: 750; }
+    .sewing-overview-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .65rem; }
+    .sewing-overview-filters .field { font-size: .68rem; }
+    .sewing-overview-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; padding: 1rem 1.25rem; background: #f8f8fa; }
+    .sewing-overview-kpi { display: flex; min-height: 7rem; flex-direction: column; justify-content: center; border: 1px solid #e1e2e8; border-radius: 1rem; padding: 1rem 1.15rem; background: #fff; }
+    .sewing-overview-kpi span, .sewing-overview-kpi small { color: #777984; font-size: .7rem; }
+    .sewing-overview-kpi strong { margin: .35rem 0; color: #202124; font-size: 1.8rem; line-height: 1; }
+    .sewing-overview-kpi-primary { border-color: #526500; background: #29320c; }
+    .sewing-overview-kpi-primary span, .sewing-overview-kpi-primary small, .sewing-overview-kpi-primary strong { color: #e6efb7; }
+    .sewing-progress-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; padding: 1rem 1.25rem 1.25rem; }
+    .sewing-progress-card { display: flex; min-height: 8.5rem; flex-direction: column; align-items: flex-start; border: 1px solid #e1e2e8; border-radius: 1rem; padding: .9rem 1rem; background: #fff; }
+    .sewing-progress-icon { display: inline-flex; align-items: center; justify-content: center; height: 2rem; width: 2rem; border-radius: .65rem; color: #526500; background: #f0f5df; }
+    .sewing-progress-label { margin-top: .8rem; color: #526500; font-size: .68rem; font-weight: 750; letter-spacing: .06em; }
+    .sewing-progress-card strong { margin-top: .35rem; color: #202124; font-size: 1.25rem; }
+    .sewing-progress-card strong small { color: #777984; font-size: .68rem; font-weight: 500; }
+    .sewing-progress-card > span:last-child { margin-top: auto; color: #777984; font-size: .68rem; }
+    @media (max-width: 1050px) { .sewing-overview-head { flex-direction: column; } .sewing-progress-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 650px) { .sewing-overview-kpis, .sewing-progress-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1050px) { .sewing-station-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sewing-flow-label { display: none; } }
+    @media (max-width: 650px) { .sewing-station-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sewing-station-board-heading { padding: 1rem; } }
+    .sewing-workflow-head { display: flex; align-items: flex-start; gap: .85rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
+    .sewing-step-badge { display: inline-flex; height: 2rem; width: 2rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: .7rem; color: #fff; background: #526500; font-size: .85rem; font-weight: 800; }
+    .sewing-workflow-head h2 { margin: 0; color: #202124; font-size: 1.05rem; font-weight: 750; }
+    .sewing-selection-count { margin-left: auto; border: 1px solid #dfe8bf; border-radius: 999px; padding: .45rem .75rem; color: #526500; background: #f2f7dc; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+    .sewing-tracking-list { display: grid; gap: 1rem; padding: 1.25rem 1.5rem 1.5rem; background: #f8f8fa; }
+    .sewing-batch-card { overflow: hidden; border: 1px solid #dedee5; border-radius: 1rem; background: #fff; box-shadow: 0 4px 14px #24243908; }
+    .sewing-batch-card-head { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.15rem; border-bottom: 1px solid #e8e8ee; background: #fcfcfd; }
+    .sewing-batch-title { color: #202124; font-size: .95rem; font-weight: 750; }
+    .sewing-remove-button { margin-left: auto; border: 0; color: #9c3d50; background: transparent; font-size: .75rem; font-weight: 650; cursor: pointer; }
+    .sewing-remove-button:hover { text-decoration: underline; }
+    .sewing-step-list { padding: .25rem 1.15rem .5rem; }
+    .sewing-progress-step { display: grid; grid-template-columns: 2rem minmax(12rem, 1fr) minmax(15rem, 18rem); align-items: center; gap: 1rem; min-height: 5.2rem; border-bottom: 1px solid #efeff3; }
+    .sewing-progress-step:last-child { border-bottom: 0; }
+    .sewing-progress-marker { display: inline-flex; height: 1.7rem; width: 1.7rem; align-items: center; justify-content: center; border: 2px solid #ccd994; border-radius: 999px; color: #526500; background: #f7f9ed; font-size: .68rem; font-weight: 800; }
+    .sewing-progress-copy { display: flex; flex-direction: column; gap: .2rem; }
+    .sewing-progress-copy strong { color: #303226; font-size: .78rem; letter-spacing: .04em; }
+    .sewing-progress-copy span { color: #777984; font-size: .72rem; }
+    .sewing-progress-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+    .sewing-progress-inputs label { display: flex; flex-direction: column; gap: .3rem; color: #777984; font-size: .68rem; font-weight: 650; }
+    .sewing-progress-inputs input { width: 100%; min-width: 0; text-align: right; }
+    .sewing-quality-step { background: #fffdf6; }
+    .sewing-quality-step .sewing-progress-marker { border-color: #e8d294; color: #866016; background: #fff7df; }
+    .sewing-qc-input { grid-template-columns: minmax(9rem, 1fr); }
+    @media (max-width: 720px) {
+        .sewing-workflow-head { padding: 1rem; }
+        .sewing-tracking-list { padding: .85rem; }
+        .sewing-progress-step { grid-template-columns: 2rem 1fr; gap: .65rem; padding: .8rem 0; }
+        .sewing-progress-inputs { grid-column: 2; }
+    }
     .field { @apply flex min-w-0 flex-col gap-2; }
     .field > input:not([type=checkbox]):not([type=radio]), .field > select, .field > textarea { min-width: 0; width: 100%; }
     .hint { @apply text-xs leading-5; color: var(--color-muted); }
@@ -120,13 +328,16 @@
     .cutting-batch-details .cutting-dia-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
     .step { @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold; background: #d5ff27; color: #283000; }
     .empty { @apply py-16 text-center text-sm; color: var(--color-muted); }
-    .metric { @apply relative overflow-hidden p-6; border: 0; min-height: 190px; }
-    .metric:first-child { background: #d5ff27; color: #232800; --color-muted: #515d18; }
-    .metric:nth-child(2) { background: #252529; color: #fff; --color-muted: #b9b9c3; }
-    .metric:nth-child(3) { background: #32352a; color: #fff; --color-muted: #c4c8b8; }
-    .metric-value { @apply mt-4 font-semibold tabular-nums; font-size: clamp(36px, 3.7vw, 50px); line-height: 1.1; letter-spacing: -2px; }
-    .metric-icon { @apply flex h-10 w-10 items-center justify-center rounded-full; background: #202124; color: #d5ff27; }
-    .metric:nth-child(2) .metric-icon, .metric:nth-child(3) .metric-icon { background: #ffffff17; color: #e4ff80; }
+    .metric { @apply relative overflow-hidden p-6 rounded-3xl border border-line bg-white shadow-sm transition; min-height: 160px; }
+    .metric:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+    .metric-value { @apply mt-3 font-bold tabular-nums text-ink; font-size: clamp(30px, 3.2vw, 42px); line-height: 1.1; letter-spacing: -1.5px; }
+    .metric-icon { @apply flex h-10 w-10 items-center justify-center rounded-2xl; background: #f0f0f4; color: #202124; }
+    .metric-hero { background: linear-gradient(135deg, #d5ff27 0%, #b8e612 100%); border-color: #c4ec17; box-shadow: 0 8px 30px rgba(213, 255, 39, 0.25); }
+    .metric-hero .metric-value { color: #1c2100; }
+    .metric-hero .metric-icon { background: #1c2100; color: #d5ff27; }
+    .metric-dark { background: #1f2025; border-color: #2e3038; color: #fff; }
+    .metric-dark .metric-value { color: #fff; }
+    .metric-dark .metric-icon { background: #ffffff14; color: #d5ff27; }
     .app-sidebar { left: 12px; top: 12px; bottom: 12px; width: 248px; max-width: calc(100vw - 24px); color: #f5f5f7; background: linear-gradient(155deg, #444449ef, #27272ded 55%, #1c1c21f5); border: 1px solid #ffffff30; border-right: 0; border-radius: 28px; box-shadow: inset 0 1px 0 #ffffff25; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); --color-ink: #f4f4f6; --color-muted: #b9bac3; --color-accent: #d5ff27; --color-hover: #ffffff17; }
     .app-sidebar { scrollbar-width: none; scrollbar-color: transparent transparent; }
     .app-sidebar.is-scrolling { scrollbar-width: thin; scrollbar-color: #a7a7b1 transparent; }
@@ -160,12 +371,60 @@
     .status-dot { @apply inline-block h-1.5 w-1.5 rounded-full; background: #d5ff27; }
     .menu-item { @apply block w-full rounded-lg px-3 py-2 text-left text-sm; color: #34353d; }
     .menu-item:hover { background: #f0f0f5; }
-    .auth-art { position: relative; overflow: hidden; background: #202024; color: #fff; --color-ink: #fff; --color-muted: #b9bac3; --color-accent: #d5ff27; }
-    .auth-art .pill { color: #d5ff27; border-color: #ffffff35; background: #ffffff0f; }
-    .auth-orbit { position: absolute; width: 500px; height: 500px; border: 1px solid #d5ff2755; border-radius: 50%; right: -200px; top: 15%; pointer-events: none; }
-    .auth-orbit::before, .auth-orbit::after { content: ""; position: absolute; inset: 45px; border: 1px solid #d5ff2733; border-radius: inherit; }
-    .auth-orbit::after { inset: 90px; background: #d5ff2709; }
-    .auth-card { border: 1px solid #e4e4eb; background: #fff; border-radius: 24px; padding: clamp(24px, 4vw, 40px); box-shadow: 0 16px 60px #24243909; }
+    .auth-page { background: #131316; min-height: 100vh; position: relative; overflow-x: hidden; }
+    .auth-art { position: relative; overflow: hidden; background: radial-gradient(circle at 10% 20%, #202229 0%, #141418 80%); color: #fff; --color-ink: #fff; --color-muted: #9da0ac; --color-accent: #d5ff27; }
+    .auth-art .pill { color: #d5ff27; border-color: #ffffff20; background: #ffffff0a; backdrop-filter: blur(8px); }
+    .auth-orbit { position: absolute; width: 620px; height: 620px; border: 1px solid #d5ff2730; border-radius: 50%; right: -240px; top: 12%; pointer-events: none; }
+    .auth-orbit::before { content: ""; position: absolute; inset: 60px; border: 1px dashed #d5ff2722; border-radius: inherit; }
+    .auth-orbit::after { content: ""; position: absolute; inset: 120px; border: 1px solid #d5ff2718; border-radius: inherit; background: radial-gradient(circle, #d5ff270c 0%, transparent 70%); }
+    .auth-card {
+        border: 1px solid #ffffff14;
+        background: rgba(28, 29, 34, 0.75);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 28px;
+        padding: clamp(28px, 4vw, 44px);
+        box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        color: #f3f3f6;
+    }
+    .auth-card h1 { color: #ffffff; }
+    .auth-card label { color: #cfd0d8; font-size: 13px; font-weight: 500; }
+    .auth-card input[type=text],
+    .auth-card input[type=email],
+    .auth-card input[type=password] {
+        border: 1px solid #33343d;
+        background-color: #16171b;
+        color: #f5f5f7;
+        border-radius: 14px;
+        min-height: 46px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .auth-card input[type=text]:hover,
+    .auth-card input[type=email]:hover,
+    .auth-card input[type=password]:hover {
+        border-color: #4a4c59;
+        background-color: #1a1b20;
+    }
+    .auth-card input[type=text]:focus,
+    .auth-card input[type=email]:focus,
+    .auth-card input[type=password]:focus {
+        border-color: #d5ff27;
+        background-color: #18191e;
+        --tw-ring-color: #d5ff27;
+        box-shadow: 0 0 0 3px rgba(213, 255, 39, 0.18);
+    }
+    .auth-card input[type=checkbox] {
+        background: #16171b;
+        border-color: #3f414c;
+        border-radius: 6px;
+    }
+    .auth-card input[type=checkbox]:checked {
+        background-color: #d5ff27;
+        border-color: #d5ff27;
+        color: #1b2000;
+    }
     .overview-strip { @apply flex flex-wrap items-center justify-between gap-6 p-6; color: #f5f5f7; background: #252529; border-radius: 22px; }
     .overview-strip .eyebrow { color: #c6c6d0; }
     .overview-strip .pill { color: #d5ff27; background: #ffffff0d; border-color: #ffffff30; }

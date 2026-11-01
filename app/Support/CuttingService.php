@@ -45,6 +45,7 @@ final class CuttingService
             $computed = [];
             $seen = [];
             foreach ($data['rows'] as $index => $row) {
+                unset($pieces);
                 $source = $isNeck ? $sources->get($row['source_body_row_id'] ?? null) : null;
                 if ($isNeck && (! $source || $source->cutting_type !== 'body' || $source->job?->cutting_type !== 'body' || $source->dozens === null || ! Decimal::of($source->dozens)->isPositive() || $source->cut_weight_kg === null || ! Decimal::of($source->cut_weight_kg)->isPositive())) {
                     throw ValidationException::withMessages(['rows.'.$index.'.source_body_row_id' => 'Choose a completed body-cut batch with recorded dozens and cut weight.']);
@@ -70,6 +71,10 @@ final class CuttingService
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Neck cutting uses body pieces; record the removed neck fabric as cutting scrap, not remaining roll fabric.']);
                     }
                 }
+                if (! $isNeck && isset($row['quantity_mode'])) {
+                    $pieces = CuttingQuantity::fromInput($row);
+                    $row['dozens'] = CuttingQuantity::dozens($pieces);
+                }
                 $row['weight_unit'] ??= 'kg';
                 $hasDozens = isset($row['dozens']) && $row['dozens'] !== '';
                 $hasWeight = isset($row['weight_per_dozen']) && $row['weight_per_dozen'] !== '';
@@ -81,7 +86,7 @@ final class CuttingService
                         throw ValidationException::withMessages(['rows.'.$index.'.remaining_fabric' => 'Add dozens and weight per dozen before recording remaining fabric.']);
                     }
                     $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight,
-                        'dozens' => $isNeck ? $row['dozens'] : null, 'pieces' => $isNeck ? $pieces : null, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'weight_is_automatic' => false, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
+                        'dozens' => isset($pieces) ? $row['dozens'] : ($isNeck ? $row['dozens'] : null), 'pieces' => isset($pieces) ? $pieces : null, 'weight_per_dozen' => null, 'weight_per_dozen_kg' => null, 'weight_is_automatic' => false, 'cut_weight_kg' => null, 'cutting_scrap_kg' => null, 'waste_kg' => null, 'waste_percent' => null,
                         'weight_unit' => $row['weight_unit'], 'remaining_fabric' => '0', 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => '0'];
 
                     continue;
@@ -99,9 +104,10 @@ final class CuttingService
                 if ($hasWeight) {
                     $weight = Decimal::scale(Decimal::normalize($row['weight_per_dozen']), 6);
                     $perKg = Decimal::scale(Decimal::of($weight)->multipliedBy($factor), 8);
-                    $cut = $isNeck ? (string) Decimal::of($pieces)->multipliedBy($perKg)->dividedBy(12, 3, RoundingMode::HalfUp) : Decimal::scale(Decimal::of($dozens)->multipliedBy($perKg));
+                    $quantityPieces = isset($pieces) ? $pieces : (string) Decimal::of($dozens)->multipliedBy(12);
+                    $cut = Decimal::scale(Decimal::of($quantityPieces)->multipliedBy($perKg)->dividedBy(12, 3, RoundingMode::HalfUp));
                 } else {
-                    $quantityPieces = $isNeck ? $pieces : (string) Decimal::of($dozens)->multipliedBy(12);
+                    $quantityPieces = isset($pieces) ? $pieces : (string) Decimal::of($dozens)->multipliedBy(12);
                     $cut = Decimal::scale(Decimal::of($inputWeight)->minus($remainingKg));
                     $perKg = (string) Decimal::of($cut)->multipliedBy(12)->dividedBy($quantityPieces, 8, RoundingMode::HalfUp);
                     $weight = (string) Decimal::of($cut)->multipliedBy(12)->dividedBy(Decimal::of($quantityPieces)->multipliedBy($factor), 6, RoundingMode::HalfUp);
@@ -114,7 +120,7 @@ final class CuttingService
                 }
                 $scrap = Decimal::scale(Decimal::of($inputWeight)->minus($cut)->minus($remainingKg));
                 $waste = Decimal::scale(Decimal::of($scrap)->plus($remainingKg));
-                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'pieces' => $isNeck ? $pieces : null, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'weight_is_automatic' => ! $hasWeight, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => Decimal::of($inputWeight)->isZero() ? '0.00' : (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
+                $computed[] = ['roll_id' => $roll->id, 'source_body_row_id' => $source?->id, 'cutting_type' => $type, 'lot_id' => $source?->lot_id ?? $roll->dyeingJob->lot_id, 'color' => $source?->color ?? $roll->dyeingRow->colorBlock->color->name, 'dia' => $source?->dia ?? $roll->dyeingRow->dia, 'roll_weight_kg' => $inputWeight, 'dozens' => $dozens, 'pieces' => isset($pieces) ? $pieces : null, 'weight_per_dozen' => $weight, 'weight_unit' => $row['weight_unit'], 'weight_per_dozen_kg' => $perKg, 'weight_is_automatic' => ! $hasWeight, 'cut_weight_kg' => $cut, 'remaining_fabric' => $remaining, 'remaining_fabric_unit' => $row['weight_unit'], 'remaining_fabric_kg' => $remainingKg, 'cutting_scrap_kg' => $scrap, 'waste_kg' => $waste, 'waste_percent' => Decimal::of($inputWeight)->isZero() ? '0.00' : (string) Decimal::of($waste)->multipliedBy(100)->dividedBy($inputWeight, 2, RoundingMode::HalfUp)];
             }
             if ($job && $type === 'body') {
                 $this->protectBodyBatches($job, $computed, $data['cutting_date']);

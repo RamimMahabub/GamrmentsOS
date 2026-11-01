@@ -1,23 +1,29 @@
 @props(['rows', 'compact' => false])
 @if($compact)<details class="cutting-batch-details"><summary class="link">{{ $rows->pluck('lot.lot_number')->unique()->join(', ') }} <span class="hint">· View color / DIA / dozens</span></summary>@endif
-<div class="cutting-batches {{ $compact ? 'mt-3' : '' }}">
-@forelse($rows->groupBy('lot_id') as $lotRows)
-    <section class="cutting-lot">
-        <div class="cutting-lot-title"><div><p class="eyebrow">Lot origin</p><a class="link" href="{{ route('lots.show', $lotRows->first()->lot_id) }}">{{ $lotRows->first()->lot->lot_number }}</a></div><span class="pill">{{ $lotRows->count() }} batches</span></div>
-        @foreach($lotRows->groupBy('color') as $color => $colorRows)
-        <div class="cutting-color"><h3><span class="h-3 w-3 rounded-full border border-line" style="background-color: {{ $colorRows->first()->roll->dyeingRow->colorBlock->color->hex }}"></span>{{ $color }}</h3><div class="cutting-dia-grid">
-            @foreach($colorRows->groupBy('dia')->sortKeys() as $dia => $diaRows)
-            @php $completed = $diaRows->whereNotNull('cut_weight_kg'); $batchPieces = \App\Support\Decimal::sum($diaRows->map(fn($row) => \App\Support\CuttingQuantity::pieces($row))); $batchDozens = \App\Support\CuttingQuantity::dozens($batchPieces); @endphp
-            <div class="cutting-dia-card"><span class="eyebrow">DIA {{ $dia }}</span>@if($diaRows->whereNotNull('dozens')->isNotEmpty())<p class="cutting-batch-quantity">@if($diaRows->first()->cutting_type === 'neck'){{ \App\Support\CuttingQuantity::display($batchPieces) }}@else{{ $batchDozens }} <span>dozen</span>@endif</p><p class="hint">{{ \App\Support\Decimal::display($batchPieces, 3, true) }} pieces</p>@else<p class="my-2 font-semibold">Dozens pending</p>@endif
-                @if($diaRows->count() !== $completed->count())<span class="hint">{{ $diaRows->count() - $completed->count() }} awaiting results</span>@else<span class="cutting-batch-status">Results recorded</span>@endif
-                @foreach($diaRows->whereNotNull('source_body_row_id')->pluck('sourceBodyRow.cutting_job_id')->filter()->unique() as $bodyJobId)<a class="link block text-xs" href="{{ route('cutting.body.show', $bodyJobId) }}">From body #{{ $bodyJobId }} → neck</a>@endforeach
-            </div>
-            @endforeach
-        </div></div>
-        @endforeach
-    </section>
-@empty
-    <p class="hint p-6">No batches in this section.</p>
-@endforelse
+<div class="table-wrap cutting-spreadsheet {{ $compact ? 'mt-3' : '' }}">
+    <table class="data-table">
+        <thead><tr><th>LOT</th><th>COLOR</th><th>DIA</th><th class="number">BATCHES</th><th class="number">QUANTITY</th><th class="number">PIECES</th><th>STATUS</th></tr></thead>
+        <tbody>
+        @forelse($rows->groupBy(fn ($row) => $row->lot_id.'|'.$row->color.'|'.$row->dia) as $group)
+            @php
+                $first = $group->first();
+                $completed = $group->whereNotNull('cut_weight_kg');
+                $pieces = \App\Support\Decimal::sum($group->map(fn ($row) => \App\Support\CuttingQuantity::pieces($row)));
+                $quantity = \App\Support\CuttingQuantity::dozens($pieces);
+            @endphp
+            <tr>
+                <td><a class="link" href="{{ route('lots.show', $first->lot_id) }}">{{ $first->lot->lot_number }}</a></td>
+                <td><span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full border border-line" style="background-color: {{ $first->roll->dyeingRow->colorBlock->color->hex }}"></span>{{ $first->color }}</span></td>
+                <td><span class="pill">{{ $first->dia }}</span></td>
+                <td class="number">{{ $group->count() }}</td>
+                <td class="number">@if($group->whereNotNull('dozens')->isNotEmpty()){{ $first->cutting_type === 'neck' ? \App\Support\CuttingQuantity::display($pieces) : $quantity.' dozen' }}@else—@endif</td>
+                <td class="number">{{ \App\Support\Decimal::display($pieces, 3, true) }}</td>
+                <td>@if($group->count() !== $completed->count())<span class="hint">{{ $group->count() - $completed->count() }} pending</span>@else<span class="cutting-batch-status">Recorded</span>@endif</td>
+            </tr>
+        @empty
+            <tr><td colspan="7" class="hint">No batches in this section.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
 </div>
 @if($compact)</details>@endif
