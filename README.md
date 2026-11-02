@@ -84,7 +84,7 @@ A return above the given amount is allowed after checking the confirmation check
 
 Opening 2,500 lb rounds to 1,133.981 kg. Four independently rounded 500 lb issues total 907.184 kg, leaving 226.797 kg. This one-gram difference is the consequence of storing each movement at three decimals.
 
-Saved DIA identifiers cannot be removed. Edits cannot lower output below fabric already allocated. A knitting job with any dyeing history cannot be deleted. Stock reconciliation writes reversals and replacement issues in one transaction; ledger entries cannot be edited.
+Saved DIA identifiers cannot be removed. Edits cannot lower output below fabric already allocated. A knitting job cannot be deleted while it has an active dyeing job. Stock reconciliation writes reversals and replacement issues in one transaction; ledger entries cannot be edited.
 
 Color merging combines matching active job rows and recalculates their waste. If one color has a return and the matching other color is still pending, the merge is blocked until both returns are complete, preserving recorded quantities and return status. Archived rows retain their historical links.
 

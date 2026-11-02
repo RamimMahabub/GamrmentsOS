@@ -37,8 +37,8 @@ final class YarnService
     {
         DB::transaction(function () use ($yarn): void {
             $yarn = Yarn::lockForUpdate()->findOrFail($yarn->id);
-            if (! D::of($this->ledger->balance($yarn))->isZero() || $yarn->jobLinks()->exists()) {
-                throw ValidationException::withMessages(['yarn' => 'A yarn with stock or knitting history cannot be deleted.']);
+            if ($yarn->jobLinks()->whereHas('knittingJob')->exists()) {
+                throw ValidationException::withMessages(['yarn' => 'A yarn with an active knitting job cannot be deleted.']);
             }
             $yarn->delete();
         }, 5);

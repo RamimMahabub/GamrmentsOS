@@ -1,20 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <div class="eyebrow flex items-center gap-2 mb-1">
-                    <span class="h-2 w-2 rounded-full bg-accent animate-pulse"></span>
-                    Precision Garment Cutting Execution
-                </div>
-                <h1 class="text-3xl font-bold tracking-tight text-ink">Cutting ({{ ucfirst($type) }})</h1>
-                <p class="text-sm text-muted mt-1">Transform returned fabric rolls into precision body panels, necks, and rib batches.</p>
+        <div>
+            <div class="eyebrow flex items-center gap-2 mb-1">
+                <span class="h-2 w-2 rounded-full bg-accent animate-pulse"></span>
+                Precision Garment Cutting Execution
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a class="btn btn-primary shadow-sm shadow-accent/25" href="{{ route('cutting.'.$type.'.create') }}">
-                    <x-icon name="plus" class="h-4 w-4"/>
-                    Add Cutting Job
-                </a>
-            </div>
+            <h1 class="text-3xl font-bold tracking-tight text-ink">Cutting ({{ ucfirst($type) }})</h1>
+            <p class="text-sm text-muted mt-1">Transform returned fabric rolls into precision body panels, necks, and rib batches.</p>
         </div>
     </x-slot>
 
@@ -23,6 +15,18 @@
 
     <!-- Futuristic Data Panel -->
     <div class="panel shadow-sm border border-line bg-surface rounded-3xl overflow-hidden">
+        <!-- Executions Header below steps icons -->
+        <div class="px-6 py-4 border-b border-line/70 flex flex-wrap items-center justify-between gap-4 bg-surface">
+            <div>
+                <h2 class="text-base font-bold text-ink">{{ ucfirst($type) }} Cutting Executions</h2>
+                <p class="text-xs text-muted">Browse and filter recorded {{ $type }} cut jobs.</p>
+            </div>
+            <a class="btn btn-primary shadow-sm shadow-accent/25 text-xs" href="{{ route('cutting.'.$type.'.create') }}">
+                <x-icon name="plus" class="h-3.5 w-3.5"/>
+                Add {{ ucfirst($type) }} Cutting Job
+            </a>
+        </div>
+
         <!-- Advanced Filter Toolbar -->
         <div class="px-6 py-5 border-b border-line/70 bg-gradient-to-r from-surface via-raised/40 to-surface">
             <form class="flex flex-wrap items-center gap-3" method="GET">
@@ -179,7 +183,7 @@
                                 <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-accent-soft text-accent-ink mb-4 shadow-sm">
                                     <x-icon name="scissors" class="h-8 w-8"/>
                                 </div>
-                                <h3 class="text-lg font-bold text-ink">No cutting jobs found</h3>
+                                <h3 class="text-lg font-bold text-ink">No cutting jobs found.</h3>
                                 <p class="text-xs text-muted mt-1 max-w-sm mx-auto">Select returned fabric rolls from your inventory to begin your first cutting batch execution.</p>
                                 <div class="mt-5">
                                     <a href="{{ route('cutting.'.$type.'.create') }}" class="btn btn-primary shadow-sm shadow-accent/25">

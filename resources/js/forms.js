@@ -8,7 +8,7 @@ Alpine.data('weightInput', (initial = {}) => ({
     kg: initial.kg ?? '0', unit: initial.unit ?? 'lb', bagKg: initial.bagKg ?? null, mode: 'weight', text: '',
     init() { this.refresh(); },
     refresh() { this.text = safe(() => this.mode === 'bags' ? format(new Big(this.kg).div(this.bagKg).toString(), 2, true) : format(fromKg(this.kg, this.unit))); },
-    change() { this.kg = safe(() => this.mode === 'bags' ? decimal(this.text).times(this.bagKg).toFixed(3, 1) : toKg(this.text, this.unit)) ?? invalid(this.text); },
+    change(value = this.text) { this.text = value; this.kg = safe(() => this.mode === 'bags' ? decimal(this.text).times(this.bagKg).toFixed(3, 1) : toKg(this.text, this.unit)) ?? invalid(this.text); },
     switchMode(value) { this.mode = value; this.refresh(); },
     bags() { return this.bagKg ? format(safe(() => new Big(this.kg).div(this.bagKg).toString()), 2, true) : null; },
     format,
@@ -21,7 +21,7 @@ Alpine.data('yarnForm', initial => ({
     refreshBag() { this.bag = this.bagKg === '' ? '' : format(safe(() => fromKg(this.bagKg, this.bagUnit))); },
     bagChanged() { this.bagKg = this.bag === '' ? '' : (safe(() => toKg(this.bag, this.bagUnit, 8)) ?? invalid(this.bag)); },
     refreshQuantity() { this.quantityText = safe(() => this.quantityMode==='bags' ? format(new Big(this.kg).div(this.bagKg).toString(),2,true) : format(fromKg(this.kg,this.weightUnit))) ?? ''; },
-    quantityChanged() { this.kg = safe(() => this.quantityMode==='bags' ? decimal(this.quantityText).times(this.bagKg).toFixed(3,1) : toKg(this.quantityText,this.weightUnit)) ?? invalid(this.quantityText); },
+    quantityChanged(value = this.quantityText) { this.quantityText = value; this.kg = safe(() => this.quantityMode==='bags' ? decimal(this.quantityText).times(this.bagKg).toFixed(3,1) : toKg(this.quantityText,this.weightUnit)) ?? invalid(this.quantityText); },
     quantityBags() { return this.bagKg ? format(safe(() => new Big(this.kg).div(this.bagKg).toString()),2,true) : null; },
     format,
 }));

@@ -32,7 +32,7 @@ class InterfaceTest extends TestCase
             '/dyeing-jobs', '/dyeing-jobs/create', '/dyeing-jobs/'.$dyeing->id, '/dyeing-jobs/'.$dyeing->id.'/edit', '/lots/'.$lot->id, '/settings', '/profile'] as $path) {
             $this->get($path)->assertOk();
         }
-        $this->get('/dashboard')->assertSee('CO-031026')->assertSeeInOrder(['Cutting (Body)', 'Cutting (Neck)', 'Cutting (Rib)', 'Staffs', 'Settings'])->assertDontSee('Sewing')->assertDontSee('Packing');
+        $this->get('/dashboard')->assertSee('CO-031026')->assertSeeInOrder(['Cutting', 'Sewing', 'Staffs', 'Settings'])->assertDontSee('Packing');
         $this->get('/lots/'.$lot->id)->assertSee('Navy')->assertSee('78.800')->assertSee('13.133')->assertSee('4.00%')->assertSee('Weight through the stages');
         $availableLots = Lot::where('id', '!=', $lot->id)->orderBy('id')->pluck('id')->all();
         $this->assertSame($availableLots, app(FabricAvailability::class)->selectable()->orderBy('id')->pluck('id')->all());

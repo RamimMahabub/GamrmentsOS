@@ -27,6 +27,11 @@ class CalculationsTest extends TestCase
         $this->assertSame($canonical, U::priceToKg(U::priceFromKg($canonical, 'lb'), 'lb'));
     }
 
+    public function test_weight_display_rounds_to_storage_precision(): void
+    {
+        $this->assertSame('2000.000', U::fromKg('907.185', 'lb'));
+    }
+
     public function test_bag_factors_preserve_the_reference_examples(): void
     {
         $this->assertSame('25.00', U::bags(U::toKg('2500', 'lb'), '45.35923700'));

@@ -16,7 +16,17 @@ export function format(value, places = 3, trim = false) {
     } catch { return '—'; }
 }
 export function toKg(value, unit, scale = 3) { return decimal(value).times(unit === 'lb' ? FACTOR : '1').toFixed(scale, 1); }
-export function fromKg(value, unit) { return new Big(String(value)).div(unit === 'lb' ? FACTOR : '1').toString(); }
+export function fromKg(value, unit) {
+    const factor = unit === 'lb' ? FACTOR : '1';
+    const exact = new Big(String(value)).div(factor);
+    const nearestWhole = exact.round(0, 1);
+    if (exact.minus(nearestWhole).abs().lte('0.001')) return nearestWhole.toFixed(3);
+    const converted = exact.round(3, 1);
+    const lower = converted.minus('0.001');
+    return lower.minus(exact).abs().lt(converted.minus(exact).abs())
+        ? lower.toFixed(3)
+        : converted.toFixed(3);
+}
 export function priceToKg(value, unit) { return decimal(value).div(unit === 'lb' ? FACTOR : '1').toFixed(6, 1); }
 export function priceFromKg(value, unit) { return new Big(String(value)).times(unit === 'lb' ? FACTOR : '1').toString(); }
 export function sum(values) { return values.reduce((total, value) => total.plus(String(value ?? '0')), new Big('0')).toString(); }

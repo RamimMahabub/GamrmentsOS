@@ -22,9 +22,23 @@ final class UnitConverter
         return D::scale(D::of(D::normalize($value))->multipliedBy(self::factor($unit)));
     }
 
-    public static function fromKg(string $value, string $unit, int $scale = 12): string
+    public static function fromKg(string $value, string $unit, int $scale = 3): string
     {
-        return (string) D::of($value)->dividedBy(self::factor($unit), $scale, RoundingMode::HalfUp);
+        $converted = D::of($value)->dividedBy(self::factor($unit), $scale, RoundingMode::HalfUp);
+        $exact = D::of($value)->dividedBy(self::factor($unit), 12, RoundingMode::HalfUp);
+        $nearestWhole = $exact->toScale(0, RoundingMode::HalfUp);
+
+        if ($exact->minus($nearestWhole)->abs()->isLessThanOrEqualTo('0.001')) {
+            return (string) $nearestWhole->toScale($scale);
+        }
+
+        $lower = $converted->minus(D::of('0.001'));
+
+        if ($lower->minus($exact)->abs()->isLessThan($converted->minus($exact)->abs())) {
+            $converted = $lower;
+        }
+
+        return (string) $converted;
     }
 
     public static function priceToKg(string $value, string $unit): string

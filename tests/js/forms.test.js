@@ -58,6 +58,16 @@ test('negative or malformed weight input never becomes a valid zero allocation',
     assert.match(data.kg,/^invalid:/);
     data.text='2,500'; data.change(); assert.equal(data.kg,'1133.981');
 });
+test('two thousand pounds converts to the correct stock quantity',()=>{
+    const data=form('weightInput',{kg:'0',unit:'lb'});
+    data.init(); data.change('2,000');
+    assert.equal(data.kg,'907.185');
+});
+test('two thousand pounds converts correctly for opening stock',()=>{
+    const data=form('yarnForm',{priceKg:'0',unit:'lb',bagKg:'45.35923700',bagUnit:'lb',kg:'0',weightUnit:'lb'});
+    data.init(); data.quantityChanged('2,000');
+    assert.equal(data.kg,'907.185');
+});
 
 test('returned rolls total mixed units and update after removal',()=>{
     const data=form('dyeingForm',{lotId:'',blocks:[],jobId:null,colors:[]});
@@ -82,7 +92,7 @@ test('new returned rolls receive a DIA, color, and sequence number',()=>{
     assert.equal(row.rolls[1].number,'32BLACK02');
     assert.equal(row.rolls[0].colorIndex,0);
     assert.equal(row.rolls[1].colorIndex,0);
-    assert.equal(row.rolls[0].weight,'18.71');
+    assert.equal(row.rolls[0].weight,'18.710');
     assert.equal(row.rolls[1].weight,'18.711');
     assert.equal(row.returned_fabric_kg,'37.421');
 });

@@ -154,6 +154,9 @@ class ManufacturingTest extends TestCase
         $this->assertSame('226.796', app(FabricAvailability::class)->forLot($job->lot->fresh())[0]['available_kg']);
         $this->assertSame('knitting', $job->lot->fresh()->current_stage);
         $this->assertSame([], app(DyedFabricBalance::class)->forLot($job->lot));
+        $this->delete(route('knitting-jobs.destroy', $job))->assertSessionHasNoErrors();
+        $this->assertSoftDeleted($job);
+        $this->assertSoftDeleted($job->lot);
     }
 
     public function test_knitting_cannot_remove_dia_or_reduce_output_already_in_dyeing(): void

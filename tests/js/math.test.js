@@ -14,6 +14,9 @@ test('unit switches preserve the canonical price', () => {
     assert.equal(stored,'4.409245');
     assert.equal(priceToKg(priceFromKg(stored,'lb'),'lb'),stored);
 });
+test('weight display rounds to storage precision', () => {
+    assert.equal(fromKg('907.185','lb'),'2000.000');
+});
 test('bag factors and knitting waste match the owner examples', () => {
     assert.equal(new Big('5').times('45.35923700').toFixed(3,1),'226.796');
     fixtures.waste.forEach(c => assert.equal(output(c.input,c.percent),c.output));

@@ -115,8 +115,8 @@ final class KnittingService
         DB::transaction(function () use ($job): void {
             $lot = Lot::lockForUpdate()->findOrFail($job->lot_id);
             $job = KnittingJob::lockForUpdate()->findOrFail($job->id);
-            if ($lot->dyeingJobs()->withTrashed()->exists()) {
-                throw ValidationException::withMessages(['job' => 'A lot with dyeing history cannot be deleted.']);
+            if ($lot->dyeingJobs()->exists()) {
+                throw ValidationException::withMessages(['job' => 'A lot with an active dyeing job cannot be deleted.']);
             }
             Yarn::whereIn('id', $job->yarnLinks()->pluck('yarn_id'))->orderBy('id')->lockForUpdate()->get();
             $this->ledger->reverseJob($job, now()->toDateString());

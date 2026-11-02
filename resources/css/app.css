@@ -207,6 +207,21 @@
     .sewing-station-card strong { color: #292d1b; font-size: .84rem; letter-spacing: .03em; }
     .sewing-station-card > span:not(.sewing-station-number):not(.sewing-station-icon) { margin-top: .3rem; color: #777984; font-size: .7rem; line-height: 1.4; }
     .sewing-station-action { margin-top: auto; padding-top: .8rem; color: #526500; font-size: .7rem; }
+    .cutting-station-board { margin-bottom: 1.5rem; border: 1px solid #dedee5; border-radius: 1.25rem; overflow: hidden; background: #fff; box-shadow: 0 5px 18px #24243908; }
+    .cutting-station-board-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
+    .cutting-station-board-heading h2 { margin: .15rem 0 .25rem; color: #202124; font-size: 1.1rem; font-weight: 750; }
+    .cutting-flow-label { padding-top: .5rem; color: #777984; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+    .cutting-flow-label b { margin: 0 .3rem; color: #ccd994; }
+    .cutting-station-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; padding: 1rem; background: #f8f8fa; }
+    @media (max-width: 850px) { .cutting-station-grid { grid-template-columns: 1fr; } .cutting-flow-label { display: none; } }
+    .cutting-station-card { position: relative; display: flex; min-height: 11.5rem; flex-direction: column; align-items: flex-start; border: 1px solid #e1e2e8; border-radius: 1rem; padding: 1rem; color: inherit; background: #fff; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; text-decoration: none; }
+    .cutting-station-card:hover { border-color: #b7c875; box-shadow: 0 6px 16px #52650018; transform: translateY(-2px); }
+    .cutting-station-card.active { border-color: #9caf4a; background: #f7f9ed; box-shadow: 0 5px 16px #52650018; }
+    .cutting-station-number { display: inline-flex; height: 1.65rem; width: 1.65rem; align-items: center; justify-content: center; border-radius: 999px; color: #526500; background: #f0f5df; font-size: .68rem; font-weight: 800; }
+    .cutting-station-icon { display: inline-flex; margin: .75rem 0 .5rem; color: #526500; }
+    .cutting-station-card strong { color: #292d1b; font-size: .84rem; letter-spacing: .03em; }
+    .cutting-station-card > .cutting-station-desc { margin-top: .3rem; color: #777984; font-size: .7rem; line-height: 1.4; }
+    .cutting-station-btn { margin-top: auto; padding-top: .85rem; width: 100%; display: flex; }
     .sewing-inline-stations { padding: 1rem; background: #f8f8fa; border-top: 1px solid #e8e8ee; }
     .sewing-inline-station > .sewing-inline-form { display: block; }
     .sewing-inline-station .sewing-stage-panel { box-shadow: none; }

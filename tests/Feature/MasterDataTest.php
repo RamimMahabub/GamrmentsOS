@@ -110,6 +110,27 @@ class MasterDataTest extends TestCase
         $this->assertSoftDeleted($yarn);
     }
 
+    public function test_yarn_with_stock_can_be_deleted_without_an_active_knitting_job(): void
+    {
+        $yarn = Yarn::factory()->withStock('100.000')->create();
+
+        $this->delete(route('yarns.destroy', $yarn))->assertSessionHasNoErrors();
+
+        $this->assertSoftDeleted($yarn);
+    }
+
+    public function test_yarn_cannot_be_deleted_with_an_active_knitting_job(): void
+    {
+        $company = Company::factory()->create();
+        $yarn = Yarn::factory()->withStock('1000.000')->create();
+        $job = app(KnittingService::class)->save($this->knittingData($yarn, $company));
+
+        $this->delete(route('yarns.destroy', $yarn))->assertSessionHasErrors('yarn');
+
+        $this->assertNotSoftDeleted($yarn);
+        $this->assertModelExists($job);
+    }
+
     public function test_color_merge_consolidates_existing_job_rows_without_changing_fabric_balance(): void
     {
         $yarn = Yarn::factory()->withStock()->create();
@@ -132,7 +153,7 @@ class MasterDataTest extends TestCase
     public function test_malformed_nested_inputs_are_validation_errors(): void
     {
         $this->postJson('/knitting-jobs', ['yarn_ids' => 'invalid', 'rows' => 'invalid'])->assertUnprocessable();
-        $this->postJson('/knitting-jobs',['yarn_ids' => [1], 'rows' => ['invalid']])->assertUnprocessable();
-        $this->postJson('/yarns',['price_per_kg' => json_decode('1.1')])->assertUnprocessable();
+        $this->postJson('/knitting-jobs', ['yarn_ids' => [1], 'rows' => ['invalid']])->assertUnprocessable();
+        $this->postJson('/yarns', ['price_per_kg' => json_decode('1.1')])->assertUnprocessable();
     }
 }
