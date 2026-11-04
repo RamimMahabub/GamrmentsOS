@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\CuttingJobRoll;
+use App\Models\Lot;
 use App\Models\SewingJob;
 use App\Models\SewingJobRow;
 use Brick\Math\RoundingMode;
@@ -52,6 +53,8 @@ class SewingService
                 ]);
             }
 
+            Lot::syncCurrentStageFor($job->rows()->pluck('lot_id')->unique()->all());
+
             return $job;
         });
     }
@@ -59,8 +62,10 @@ class SewingService
     public function delete(SewingJob $job): void
     {
         DB::transaction(function () use ($job): void {
+            $lotIds = $job->rows()->pluck('lot_id')->unique()->all();
             $job->rows()->delete();
             $job->delete();
+            Lot::syncCurrentStageFor($lotIds);
         });
     }
 }

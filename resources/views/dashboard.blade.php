@@ -37,7 +37,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Stage 1: Warehouse / Yarn -->
             <a href="{{ route('yarns.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
                 <div class="flex items-center justify-between mb-3">
@@ -105,6 +105,23 @@
                     <span class="pill">Rolls</span>
                 </div>
             </a>
+
+            <!-- Stage 5: Sewing -->
+            <a href="{{ route('sewing-jobs.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
+                        <x-icon name="factory" class="h-4 w-4"/>
+                    </span>
+                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 05</span>
+                </div>
+                <div class="text-xs font-semibold text-muted uppercase tracking-wider">Sewing Assembly</div>
+                <div class="text-xl font-bold text-ink mt-1">{{ $counts['sewing'] ?? 0 }} <span class="text-xs font-normal text-muted">lots in sewing</span></div>
+                <div class="text-xs text-muted mt-1">5-station production flow</div>
+                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
+                    <span class="link group-hover:underline">Stations & Handoffs →</span>
+                    <span class="pill">Assembly</span>
+                </div>
+            </a>
         </div>
     </section>
 
@@ -131,7 +148,7 @@
             </div>
             <div class="metric-value">{{ $totalLotsCount }}</div>
             <div class="mt-3 flex items-center justify-between text-xs text-neutral-400">
-                <span>{{ $counts['knitting'] ?? 0 }} Knitting &bull; {{ $counts['dyeing'] ?? 0 }} Dyeing</span>
+                <span>{{ collect(['knitting', 'dyeing', 'cutting', 'sewing'])->map(fn($st) => ($counts[$st] ?? 0) . ' ' . ucfirst($st))->filter(fn($txt) => !str_starts_with($txt, '0 '))->join(' • ') ?: 'No active lots' }}</span>
                 <span class="text-[#d5ff27] font-medium underline underline-offset-4">View lots &rarr;</span>
             </div>
         </a>
@@ -196,8 +213,22 @@
                                 <td class="text-muted text-xs">{{ $lot->lot_date->format('d M Y') }}</td>
                                 <td class="font-medium text-ink">{{ $lot->knittingJob?->company?->name ?? '—' }}</td>
                                 <td>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium {{ $lot->current_stage === 'dyeing' ? 'bg-purple-100 text-purple-800' : 'bg-lime-100 text-lime-900' }}">
-                                        <span class="h-1.5 w-1.5 rounded-full {{ $lot->current_stage === 'dyeing' ? 'bg-purple-600' : 'bg-lime-600' }}"></span>
+                                    @php
+                                    $stageClasses = match($lot->current_stage) {
+                                        'sewing' => 'bg-emerald-100 text-emerald-800',
+                                        'cutting' => 'bg-blue-100 text-blue-800',
+                                        'dyeing' => 'bg-purple-100 text-purple-800',
+                                        default => 'bg-lime-100 text-lime-900',
+                                    };
+                                    $dotClasses = match($lot->current_stage) {
+                                        'sewing' => 'bg-emerald-600',
+                                        'cutting' => 'bg-blue-600',
+                                        'dyeing' => 'bg-purple-600',
+                                        default => 'bg-lime-600',
+                                    };
+                                    @endphp
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium {{ $stageClasses }}">
+                                        <span class="h-1.5 w-1.5 rounded-full {{ $dotClasses }}"></span>
                                         {{ ucfirst($lot->current_stage) }}
                                     </span>
                                 </td>

@@ -109,7 +109,7 @@ final class DyeingService
                 }
             }
             app(ReturnedRolls::class)->sync($job);
-            $lot->update(['current_stage' => 'dyeing']);
+            $lot->syncCurrentStage();
             if ($before !== null) {
                 ActivityLog::create(['event' => 'updated', 'subject_type' => $job->getMorphClass(), 'subject_id' => $job->id,
                     'properties' => ['before' => $before, 'after' => $job->fresh(['colorBlocks.color', 'colorBlocks.rows'])->toArray()]]);
@@ -130,9 +130,7 @@ final class DyeingService
                 $block->delete();
             }
             $job->delete();
-            if (! $lot->dyeingJobs()->exists()) {
-                $lot->update(['current_stage' => 'knitting']);
-            }
+            $lot->syncCurrentStage();
         }, 5);
     }
 }

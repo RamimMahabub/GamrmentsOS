@@ -45,7 +45,7 @@ class SewingJobController extends Controller
             return [$step['key'] => [
                 'executions' => $stepJobs->count(),
                 'batches' => $stepJobs->sum(fn (SewingJob $job): int => $job->rows->count()),
-                'pieces' => $stepJobs->sum(fn (SewingJob $job): float => (float) $job->rows->sum(fn (SewingJobRow $row): string => (string) Decimal::of($row->{$column})->multipliedBy(12)->plus($row->{$piecesColumn}))),
+                'pieces' => Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->map(fn (SewingJobRow $row): string => (string) Decimal::of($row->{$column})->multipliedBy(12)->plus($row->{$piecesColumn})))),
                 'rejected' => Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck('rejected_pieces'))),
             ]];
         })->all();

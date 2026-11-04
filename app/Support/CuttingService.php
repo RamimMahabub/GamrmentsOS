@@ -131,6 +131,7 @@ final class CuttingService
             foreach ($computed as $attributes) {
                 $job->rows()->updateOrCreate(['roll_id' => $attributes['roll_id']], $attributes);
             }
+            Lot::syncCurrentStageFor($lotIds);
             ActivityLog::create(['event' => $before ? 'updated' : 'created', 'subject_type' => $job->getMorphClass(), 'subject_id' => $job->id, 'properties' => ['before' => $before, 'after' => $job->fresh('rows')->toArray()]]);
 
             return $job;
@@ -140,7 +141,8 @@ final class CuttingService
     public function delete(CuttingJob $job): void
     {
         DB::transaction(function () use ($job): void {
-            Lot::whereIn('id', $job->rows()->pluck('lot_id'))->orderBy('id')->lockForUpdate()->get();
+            $lotIds = $job->rows()->pluck('lot_id')->unique()->all();
+            Lot::whereIn('id', $lotIds)->orderBy('id')->lockForUpdate()->get();
             $job = CuttingJob::lockForUpdate()->findOrFail($job->id);
             if ($job->cutting_type === 'body') {
                 $this->protectBodyBatches($job, [], null);
@@ -148,6 +150,7 @@ final class CuttingService
             $before = $job->load('rows')->toArray();
             $job->rows()->delete();
             $job->delete();
+            Lot::syncCurrentStageFor($lotIds);
             ActivityLog::create(['event' => 'deleted', 'subject_type' => $job->getMorphClass(), 'subject_id' => $job->id, 'properties' => ['before' => $before, 'after' => null]]);
         }, 5);
     }
