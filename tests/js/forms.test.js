@@ -21,6 +21,15 @@ test('knitting bag entry, waste picks and repeated unit switches preserve canoni
     assert.equal(row.quantities['1'],'226.796');
     assert.equal(row.displays['1'],'500.000');
 });
+test('knitting multi-row pound entries reconcile rounding drift without exceeding yarn stock',()=>{
+    const data=form('knittingForm',{yarns:[{id:'1',name:'Sudan',type:'34 Single',stock:'680.389',bagKg:'45.35923700'}],selected:['1'],rows:[],presets:[32,34,36,38,40],unit:'lb',date:'2026-05-10',lotNumber:'SU-100526'});
+    data.count=5; data.init();
+    const yarn=data.yarns[0];
+    data.rows.forEach(row => { row.displays['1']='300'; data.setQuantity(row, yarn); });
+    assert.equal(data.totals().input, '680.389');
+    assert.equal(sum(data.rows.map(r => r.quantities['1'])), '680.389');
+    assert.equal(data.rows[4].quantities['1'], '136.077');
+});
 test('price and bag unit switches change display without rewriting stored values',()=>{
     const data=form('yarnForm',{priceKg:'4.409245',unit:'lb',bagKg:'45.35923700',bagUnit:'lb',kg:'0',weightUnit:'lb'});
     data.init(); assert.equal(data.price,'2.00');

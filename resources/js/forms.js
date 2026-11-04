@@ -38,7 +38,7 @@ Alpine.data('knittingForm', initial => ({
         this.rows = this.rows.map(row => ({...row, modes: {}, displays: {}}));
         if (!this.rows.length) this.resize();
         this.syncYarns();
-        this.$watch('unit', () => this.refreshDisplays());
+        this.$watch('unit', () => { this.refreshDisplays(); this.selectedYarns().forEach(y => this.reconcileYarn(y)); });
         this.$watch('selected', () => { this.syncYarns(); this.previewLot(); });
         this.$watch('date', () => this.previewLot());
         this.previewLot();
@@ -62,15 +62,65 @@ Alpine.data('knittingForm', initial => ({
         this.rows = this.rows.slice(0, count);
         while (this.rows.length < count) this.rows.push({dia: String(this.presets[this.rows.length] ?? ''), waste_percent: '0', quantities: {}, modes: {}, displays: {}});
         this.syncYarns();
+        this.selectedYarns().forEach(y => this.reconcileYarn(y));
     },
     refreshDisplays() { this.rows.forEach(row => this.selectedYarns().forEach(y => this.refreshCell(row, y))); },
     refreshCell(row, yarn) {
         row.displays[yarn.id] = safe(() => row.modes[yarn.id] === 'bags' ? format(new Big(row.quantities[yarn.id]).div(yarn.bagKg).toString(), 2, true) : format(fromKg(row.quantities[yarn.id], this.unit))) ?? '';
     },
-    setMode(row, yarn, mode) { row.modes[yarn.id] = mode; this.refreshCell(row, yarn); },
+    setMode(row, yarn, mode) { row.modes[yarn.id] = mode; this.refreshCell(row, yarn); this.reconcileYarn(yarn); },
     setQuantity(row, yarn) {
         const value = row.displays[yarn.id];
         row.quantities[yarn.id] = safe(() => row.modes[yarn.id] === 'bags' ? decimal(value).times(yarn.bagKg).toFixed(3, 1) : toKg(value, this.unit)) ?? invalid(value);
+        this.reconcileYarn(yarn);
+    },
+    reconcileYarn(yarn) {
+        if (!yarn) return;
+        const activeRows = this.rows.filter(r => r.displays[yarn.id] && safe(() => decimal(r.displays[yarn.id]).gt('0')));
+        if (activeRows.length < 2) return;
+
+        const allBags = activeRows.every(r => r.modes[yarn.id] === 'bags');
+        const allWeightNonKg = activeRows.every(r => r.modes[yarn.id] !== 'bags') && this.unit !== 'kg';
+
+        if (!allBags && !allWeightNonKg) return;
+
+        activeRows.forEach(r => {
+            r.quantities[yarn.id] = safe(() => allBags
+                ? decimal(r.displays[yarn.id]).times(yarn.bagKg).toFixed(3, 1)
+                : toKg(r.displays[yarn.id], this.unit)
+            ) ?? r.quantities[yarn.id];
+        });
+
+        const totalEntered = sum(activeRows.map(r => r.displays[yarn.id]));
+        const totalKg = allBags
+            ? decimal(totalEntered).times(yarn.bagKg).toFixed(3, 1)
+            : toKg(totalEntered, this.unit);
+
+        let currentSum = sum(activeRows.map(r => r.quantities[yarn.id]));
+        const drift = new Big(currentSum).minus(totalKg);
+
+        if (!drift.eq('0')) {
+            const lastRow = activeRows[activeRows.length - 1];
+            const adjusted = new Big(lastRow.quantities[yarn.id]).minus(drift);
+            if (adjusted.gte('0')) {
+                lastRow.quantities[yarn.id] = adjusted.toFixed(3);
+            }
+        }
+
+        if (yarn.stock) {
+            const availableKg = safe(() => new Big(yarn.stock));
+            if (availableKg && availableKg.gt('0')) {
+                currentSum = sum(activeRows.map(r => r.quantities[yarn.id]));
+                const overStock = new Big(currentSum).minus(availableKg);
+                if (overStock.gt('0') && overStock.lte('0.001')) {
+                    const lastRow = activeRows[activeRows.length - 1];
+                    const adjusted = new Big(lastRow.quantities[yarn.id]).minus(overStock);
+                    if (adjusted.gte('0')) {
+                        lastRow.quantities[yarn.id] = adjusted.toFixed(3);
+                    }
+                }
+            }
+        }
     },
     rowInput(row) { return safe(() => sum(Object.values(row.quantities))); },
     rowOutput(row) { const input = this.rowInput(row); return input === null ? null : safe(() => output(input, row.waste_percent)); },

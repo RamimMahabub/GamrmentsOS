@@ -74,6 +74,20 @@ final class KnittingService
                 }
                 $available = $this->ledger->balance($yarns[$id]);
                 if (D::of($totals[$id])->isGreaterThan($available)) {
+                    $diff = D::of($totals[$id])->minus($available);
+                    if ($diff->isLessThanOrEqualTo('0.001')) {
+                        for ($i = count($computed) - 1; $i >= 0; $i--) {
+                            if (isset($computed[$i]['quantities'][$id]) && D::of($computed[$i]['quantities'][$id])->isGreaterThanOrEqualTo((string) $diff)) {
+                                $computed[$i]['quantities'][$id] = D::scale(D::of($computed[$i]['quantities'][$id])->minus($diff));
+                                $totals[$id] = $available;
+                                $computed[$i]['input_kg'] = D::scale(D::sum($computed[$i]['quantities']));
+                                $computed[$i]['output_fabric_kg'] = WasteCalculator::output($computed[$i]['input_kg'], $computed[$i]['waste_percent']);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (D::of($totals[$id])->isGreaterThan($available)) {
                     throw ValidationException::withMessages(['yarn_ids' => $yarns[$id]->name.' stock shortfall: '.D::scale(D::of($totals[$id])->minus($available)).' kg.']);
                 }
             }

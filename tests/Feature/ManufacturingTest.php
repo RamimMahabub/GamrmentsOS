@@ -93,6 +93,28 @@ class ManufacturingTest extends TestCase
         $this->assertSame('100.000', app(StockLedger::class)->balance($yarn));
     }
 
+    public function test_rounding_drift_does_not_cause_stock_shortfall_when_allocating_entire_stock(): void
+    {
+        $yarn = Yarn::factory()->create(['name' => 'Sudan']);
+        app(StockLedger::class)->write($yarn, 'purchase', '680.389', '2026-05-01');
+        $company = Company::factory()->create();
+        $data = [
+            'company_id' => $company->id,
+            'yarn_ids' => [$yarn->id],
+            'entry_date' => '2026-05-10',
+            'input_unit' => 'lb',
+            'rows' => [
+                ['dia' => 32, 'waste_percent' => '0', 'quantities' => [$yarn->id => '136.078']],
+                ['dia' => 34, 'waste_percent' => '0', 'quantities' => [$yarn->id => '136.078']],
+                ['dia' => 36, 'waste_percent' => '0', 'quantities' => [$yarn->id => '136.078']],
+                ['dia' => 38, 'waste_percent' => '0', 'quantities' => [$yarn->id => '136.078']],
+                ['dia' => 40, 'waste_percent' => '0', 'quantities' => [$yarn->id => '136.078']],
+            ],
+        ];
+        $this->post('/knitting-jobs', $data)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame('0.000', app(StockLedger::class)->balance($yarn));
+    }
+
     public function test_knitting_edit_reverses_old_issues_and_delete_restores_stock(): void
     {
         $yarn = Yarn::factory()->withStock('1000.000')->create(['name' => 'Sudan']);
