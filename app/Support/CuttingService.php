@@ -54,11 +54,29 @@ final class CuttingService
                     throw ValidationException::withMessages(['cutting_date' => 'Neck cutting cannot be dated before its body cutting job.']);
                 }
                 $roll = $rolls->get($source?->roll_id ?? $row['roll_id'] ?? null);
-                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id]) || (! $isNeck && CuttingJobRoll::where('roll_id', $roll->id)->whereIn('cutting_type', ['body', 'rib'])->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))->lockForUpdate()->first(['id']))) {
-                    throw ValidationException::withMessages(['rows.'.$index.'.'.($isNeck ? 'source_body_row_id' : 'roll_id') => $isNeck ? 'This body batch is unavailable or already assigned to neck cutting.' : 'This roll is unavailable or already reserved for body or rib cutting.']);
+                if (! $roll || ! $roll->is_available || $roll->dyeingJob->trashed() || ! $roll->dyeingRow->returned_fabric_kg || isset($seen[$roll->id])) {
+                    throw ValidationException::withMessages(['rows.'.$index.'.'.($isNeck ? 'source_body_row_id' : 'roll_id') => $isNeck ? 'This body batch is unavailable or already assigned to neck cutting.' : 'This roll is unavailable.']);
                 }
                 $seen[$roll->id] = true;
                 $inputWeight = $source?->cut_weight_kg ?? $roll->weight_kg;
+                if (! $isNeck) {
+                    $usedWeight = CuttingJobRoll::where('roll_id', $roll->id)
+                        ->whereIn('cutting_type', ['body', 'rib'])
+                        ->when($job, fn ($q) => $q->where('cutting_job_id', '!=', $job->id))
+                        ->lockForUpdate()
+                        ->sum('roll_weight_kg');
+                    $availableRollWeight = Decimal::scale(Decimal::of($roll->weight_kg)->minus($usedWeight));
+                    if (! Decimal::of($availableRollWeight)->isPositive()) {
+                        throw ValidationException::withMessages(['rows.'.$index.'.roll_id' => 'Roll '.$roll->number.' has no remaining fabric available.']);
+                    }
+                    $requestedWeight = isset($row['roll_weight_kg']) && trim((string) $row['roll_weight_kg']) !== ''
+                        ? Decimal::scale(Decimal::normalize($row['roll_weight_kg']))
+                        : $availableRollWeight;
+                    if (! Decimal::of($requestedWeight)->isPositive() || Decimal::of($requestedWeight)->isGreaterThan($availableRollWeight)) {
+                        throw ValidationException::withMessages(['rows.'.$index.'.roll_weight_kg' => 'Enter a positive weight up to '.$availableRollWeight.' kg available for roll '.$roll->number.'.']);
+                    }
+                    $inputWeight = $requestedWeight;
+                }
                 if ($isNeck) {
                     $available = $this->neckAvailability->remaining($source, $neckRows->get($roll->id, collect()));
                     $pieces = CuttingQuantity::fromInput($row);

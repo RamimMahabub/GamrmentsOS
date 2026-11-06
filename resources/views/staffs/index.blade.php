@@ -66,13 +66,13 @@
                         <th class="number pr-6 text-[10px] font-bold tracking-widest text-muted uppercase">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#efeff3]">
+                <tbody class="divide-y divide-[#e2e4ea]">
                     @forelse($staffs as $index => $staff)
                         @php 
                             $totalPieces = $lifetimePieces[$staff->id] ?? '0.000'; 
                             $totalDozens = \App\Support\CuttingQuantity::dozens($totalPieces); 
                         @endphp
-                        <tr class="group transition-all duration-150 hover:bg-[#fafaf3]">
+                        <tr class="group transition-all duration-150 hover:bg-[#edf3dc] even:bg-[#f7f9fc]">
                             <!-- Row Index -->
                             <td class="text-center font-mono text-xs text-muted/80">
                                 {{ str_pad((string)($staffs->firstItem() + $index), 2, '0', STR_PAD_LEFT) }}

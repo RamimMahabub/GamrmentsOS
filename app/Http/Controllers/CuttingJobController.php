@@ -52,7 +52,29 @@ class CuttingJobController extends Controller
     private function form(Request $request, CuttingJob $job): View
     {
         $type = $this->type($request);
-        $available = $type === 'neck' ? collect() : ReturnedRoll::with(['dyeingJob.lot', 'dyeingRow.colorBlock.color'])->where('is_available', true)->whereHas('dyeingJob')->whereDoesntHave('cuttingRows', fn ($q) => $q->whereIn('cutting_type', ['body', 'rib'])->when($job->exists, fn ($q) => $q->where('cutting_job_id', '!=', $job->id)))->orderBy('number')->get()->map(fn ($roll): array => ['id' => $roll->id, 'number' => $roll->number, 'lot_id' => $roll->dyeingJob->lot_id, 'lot' => $roll->dyeingJob->lot->lot_number, 'color' => $roll->dyeingRow->colorBlock->color->name, 'color_hex' => $roll->dyeingRow->colorBlock->color->hex, 'dia' => $roll->dyeingRow->dia, 'weight_kg' => $roll->weight_kg])->values();
+        $available = $type === 'neck' ? collect() : ReturnedRoll::with([
+            'dyeingJob.lot',
+            'dyeingRow.colorBlock.color',
+            'cuttingRows' => fn ($query) => $query->whereIn('cutting_type', ['body', 'rib'])->when($job->exists, fn ($query) => $query->where('cutting_job_id', '!=', $job->id)),
+        ])->where('is_available', true)->whereHas('dyeingJob')->orderBy('number')->get()->map(function ($roll): ?array {
+            $usedWeight = Decimal::sum($roll->cuttingRows->pluck('roll_weight_kg'));
+            $remainingWeight = Decimal::of($roll->weight_kg)->minus($usedWeight);
+            if (! $remainingWeight->isPositive()) {
+                return null;
+            }
+
+            return [
+                'id' => $roll->id,
+                'number' => $roll->number,
+                'lot_id' => $roll->dyeingJob->lot_id,
+                'lot' => $roll->dyeingJob->lot->lot_number,
+                'color' => $roll->dyeingRow->colorBlock->color->name,
+                'color_hex' => $roll->dyeingRow->colorBlock->color->hex,
+                'dia' => $roll->dyeingRow->dia,
+                'weight_kg' => Decimal::scale($remainingWeight),
+                'total_weight_kg' => Decimal::scale($roll->weight_kg),
+            ];
+        })->filter()->values();
         if ($type === 'neck') {
             $availability = app(NeckAvailability::class);
             $available = CuttingJobRoll::with(['job.staff', 'lot', 'roll.dyeingRow.colorBlock.color',
@@ -65,7 +87,7 @@ class CuttingJobController extends Controller
                     ...$availability->remaining($body, $body->roll->cuttingRows),
                 ])->filter(fn (array $body): bool => Decimal::of($body['pieces'])->isPositive())->values();
         }
-        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => array_replace($row->only(['roll_id', 'source_body_row_id', 'dozens', 'pieces', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']), $row->weight_is_automatic ? ['weight_per_dozen' => ''] : []))->all() : []);
+        $rows = old('rows', $job->exists ? $job->rows->map(fn ($row): array => array_replace($row->only(['roll_id', 'source_body_row_id', 'roll_weight_kg', 'dozens', 'pieces', 'weight_per_dozen', 'weight_unit', 'remaining_fabric']), $row->weight_is_automatic ? ['weight_per_dozen' => ''] : []))->all() : []);
         if ($type === 'neck') {
             $rows = collect($rows)->map(function (array $row) use ($available): array {
                 $source = $available->firstWhere('source_body_row_id', $row['source_body_row_id'] ?? null);

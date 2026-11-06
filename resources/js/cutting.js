@@ -19,13 +19,21 @@ function quantityFields(pieces) {
     if (!count.eq(count.round(0))) return {quantity_mode: '', pieces: count.toFixed(3), dozens: count.div('12').toFixed(3)};
     const dozens = count.div('12').round(0, 0);
     const remainder = count.minus(dozens.times('12'));
-    return {quantity_mode: remainder.eq('0') ? 'dozen' : 'dozen_pieces', quantity_dozens: dozens.toString(), quantity_pieces: remainder.toString(), pieces: count.toFixed(3), dozens: count.div('12').toFixed(3)};
+    return {quantity_mode: 'dozen_pieces', quantity_dozens: dozens.toString(), quantity_pieces: remainder.toString(), pieces: count.toFixed(3), dozens: count.div('12').toFixed(3)};
 }
 function availablePieces(roll) { return roll.pieces == null ? decimal(roll.dozens).times('12') : decimal(roll.pieces); }
 
 export function cuttingInputWeight(row, roll) {
     const availableWeight = decimal(roll.weight_kg);
-    if (!roll.source_body_row_id) return availableWeight.toFixed(3);
+    if (!roll.source_body_row_id) {
+        if (!row.roll_weight_kg) return availableWeight.toFixed(3);
+        try {
+            const entered = decimal(row.roll_weight_kg);
+            return (entered.gt(availableWeight) ? availableWeight : entered).toFixed(3);
+        } catch {
+            return availableWeight.toFixed(3);
+        }
+    }
     const pieces = cuttingPieces(row);
     if (pieces.eq(availablePieces(roll))) return availableWeight.toFixed(3);
     const proportionalWeight = new Big(decimal(roll.body_weight_kg ?? roll.weight_kg).times(pieces).div(roll.body_pieces == null ? decimal(roll.body_dozens ?? roll.dozens).times('12') : decimal(roll.body_pieces)).toFixed(3));
@@ -63,7 +71,15 @@ export function registerCutting(Alpine) {
     Alpine.data('cuttingForm', config => ({
         canRecordResults: true, isNeck: false, ...config, search: '', lot: '', color: '', dia: '',
         init() {
-            if (this.isNeck) for (const row of this.rows) { if (!row.quantity_mode) Object.assign(row, quantityFields(cuttingPieces(row))); }
+            for (const row of this.rows) {
+                if (row.pieces != null || row.dozens != null) {
+                    if (!row.quantity_mode) Object.assign(row, quantityFields(cuttingPieces(row)));
+                } else {
+                    row.quantity_mode = 'dozen_pieces';
+                    row.quantity_dozens = '';
+                    row.quantity_pieces = '0';
+                }
+            }
             const first = this.available.find(roll => this.selected(roll.id));
             if (first) this.lot = String(first.lot_id);
         },
@@ -93,6 +109,22 @@ export function registerCutting(Alpine) {
         availableQuantity(roll) { return quantityText(availablePieces(roll)); },
         availableTotal(rolls) { return quantityText(rolls.reduce((total, roll) => total.plus(availablePieces(roll)), new Big('0'))); },
         quantity(row) { try { return quantityText(cuttingPieces(row)); } catch { return '-'; } },
+        normalizePieces(row) {
+            if (row.quantity_pieces == null || String(row.quantity_pieces).trim() === '' || isNaN(row.quantity_pieces)) return;
+            try {
+                const piecesDec = decimal(row.quantity_pieces);
+                if (piecesDec.gte(12)) {
+                    const extraDozens = piecesDec.div(12).round(0, 0); // floor towards zero
+                    const remainder = piecesDec.minus(extraDozens.times(12));
+                    const currentDozens = row.quantity_dozens && !isNaN(row.quantity_dozens) ? decimal(row.quantity_dozens) : new Big(0);
+                    row.quantity_dozens = currentDozens.plus(extraDozens).toString();
+                    row.quantity_pieces = remainder.toString();
+                }
+            } catch {
+                return;
+            }
+            this.syncQuantity(row);
+        },
         syncQuantity(row) { try { row.pieces = cuttingPieces({...row, pieces: null}).toFixed(3); row.dozens = new Big(row.pieces).div('12').toFixed(3); } catch { /* Keep incomplete input editable. */ } },
         changeQuantityMode(row) {
             const pieces = decimal(row.pieces ?? '0');
@@ -114,7 +146,37 @@ export function registerCutting(Alpine) {
                 this.rows = this.rows.filter(row => !ids.has(String(row.roll_id)));
             }
         },
-        newRow(roll) { return {roll_id: roll.id, source_body_row_id: roll.source_body_row_id, dozens: '', weight_per_dozen: '', weight_unit: 'kg', remaining_fabric: '0', ...(this.isNeck ? quantityFields(availablePieces(roll)) : {})}; },
+        newRow(roll) {
+            return {
+                roll_id: roll.id,
+                source_body_row_id: roll.source_body_row_id,
+                roll_weight_kg: roll.weight_kg,
+                dozens: '',
+                weight_per_dozen: '',
+                weight_unit: 'kg',
+                remaining_fabric: '0',
+                ...(this.isNeck ? quantityFields(availablePieces(roll)) : {}),
+            };
+        },
+        isPartial(row, roll) {
+            if (!row || !roll || !row.roll_weight_kg) return false;
+            try { return decimal(row.roll_weight_kg).lt(decimal(roll.weight_kg)); } catch { return false; }
+        },
+        remainingRollWeight(row, roll) {
+            if (!row || !roll || !row.roll_weight_kg) return '0.000';
+            try {
+                const diff = decimal(roll.weight_kg).minus(decimal(row.roll_weight_kg));
+                return diff.lt('0') ? '0.000' : diff.toFixed(3);
+            } catch { return '0.000'; }
+        },
+        syncRollWeight(row, roll) {
+            if (!row || !roll || !row.roll_weight_kg) return;
+            try {
+                const entered = decimal(row.roll_weight_kg);
+                const max = decimal(roll.weight_kg);
+                if (entered.gt(max)) row.roll_weight_kg = roll.weight_kg;
+            } catch {}
+        },
         selected(id) { return this.rows.some(row => String(row.roll_id) === String(id)); },
         selectedRow(id) { return this.rows.find(row => String(row.roll_id) === String(id)); },
         remainingDozens(roll) { try { const remaining = availablePieces(roll).minus(cuttingPieces(this.selectedRow(roll.id))); return remaining.lt('0') ? '-' : remaining.div('12').toFixed(3); } catch { return '-'; } },
@@ -146,6 +208,13 @@ export function registerCutting(Alpine) {
             if (this.isNeck && this.rows.some(row => {
                 try { const quantity = cuttingPieces(row); return quantity.lte('0') || quantity.gt(availablePieces(this.roll(row))); } catch { return true; }
             })) return true;
+            if (!this.isNeck && this.rows.some(row => {
+                try {
+                    const roll = this.roll(row);
+                    const w = decimal(row.roll_weight_kg ?? roll.weight_kg);
+                    return w.lte('0') || (roll.weight_kg && w.gt(decimal(roll.weight_kg)));
+                } catch { return true; }
+            })) return true;
             if (!this.canRecordResults) return false;
             return this.rows.some(row => {
                 if (this.pending(row)) {
@@ -154,7 +223,9 @@ export function registerCutting(Alpine) {
                 try { return cuttingRow(row, this.roll(row)).invalid; } catch { return true; }
             });
         },
-        pending(row) { return !this.isNeck && !row.quantity_mode && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim(); },
+        pending(row) {
+            return !this.isNeck && !row.quantity_mode && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim();
+        },
         display: format,
     }));
 }

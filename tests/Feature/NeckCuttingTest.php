@@ -124,7 +124,7 @@ class NeckCuttingTest extends TestCase
         });
         $this->post(route('cutting.neck.store'), $this->neckData())->assertSessionHasNoErrors();
         $this->get(route('lots.show', $this->body->lot_id))->assertOk()->assertSee('0.000 dozen ready for neck cutting')->assertSee('5.000 kg body-cut input')->assertSee('0.000 kg awaiting neck cutting');
-        $this->get(route('staffs.show', [$this->staff, 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSee('Fabric totals by cutting stage')->assertSee('From body #'.$this->body->cutting_job_id);
+        $this->get(route('staffs.show', [$this->staff, 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSee('cutting-dia-card staff-stage-card staff-stage-body', false)->assertSee('From body #'.$this->body->cutting_job_id);
     }
 
     public function test_neck_weight_in_pounds_uses_body_weight_as_input(): void
@@ -244,21 +244,29 @@ class NeckCuttingTest extends TestCase
         $this->put(route('cutting.body.update', $this->body->cutting_job_id), $bodyData)->assertSessionHasErrors('job');
     }
 
-    public function test_database_still_prevents_duplicate_body_assignments(): void
+    public function test_database_still_prevents_duplicate_roll_in_same_cutting_job(): void
     {
         $this->expectException(QueryException::class);
 
-        CuttingJobRoll::factory()->create(['roll_id' => $this->body->roll_id, 'cutting_type' => 'body']);
+        CuttingJobRoll::factory()->create(['cutting_job_id' => $this->body->cutting_job_id, 'roll_id' => $this->body->roll_id, 'cutting_type' => 'body']);
     }
 
-    public function test_database_still_prevents_duplicate_rib_assignments(): void
+    public function test_partial_roll_allocation_supports_multiple_cutting_jobs_until_depleted(): void
     {
-        $first = CuttingJob::factory()->create(['cutting_type' => 'rib']);
-        CuttingJobRoll::factory()->create(['cutting_job_id' => $first->id, 'roll_id' => $this->body->roll_id]);
-        $second = CuttingJob::factory()->create(['cutting_type' => 'rib']);
-        $this->expectException(QueryException::class);
+        $this->assertSame('10.000', $this->body->roll->weight_kg);
+        $this->assertSame('10.000', $this->body->roll_weight_kg);
 
-        CuttingJobRoll::factory()->create(['cutting_job_id' => $second->id, 'roll_id' => $this->body->roll_id]);
+        // A second job can use remaining weight from a partial allocation
+        $this->body->update(['roll_weight_kg' => '6.000']);
+        $secondJob = CuttingJob::factory()->create(['cutting_type' => 'body', 'cutting_date' => '2026-10-21', 'staff_id' => $this->staff->id]);
+        $secondRow = CuttingJobRoll::factory()->create([
+            'cutting_job_id' => $secondJob->id,
+            'roll_id' => $this->body->roll_id,
+            'cutting_type' => 'body',
+            'roll_weight_kg' => '4.000',
+        ]);
+
+        $this->assertSame('4.000', $secondRow->roll_weight_kg);
     }
 
     public function test_combined_quantity_stores_exact_pieces_and_preserves_the_remaining_balance(): void

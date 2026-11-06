@@ -74,16 +74,31 @@
     .dyeing-spreadsheet-lines { display: grid; gap: 0.15rem; white-space: nowrap; }
     .dyeing-spreadsheet-subtotal td { padding-top: 0.55rem; padding-bottom: 0.55rem; color: #394513; background: #f7f9ed; border-top: 1px solid #dfe8bf; font-weight: 600; }
     .dyeing-entry-sheet .table-wrap { max-height: 72vh; }
-    .dyeing-entry-sheet .data-table th, .dyeing-entry-sheet .data-table td { padding: 0.65rem 0.8rem; }
+    .dyeing-entry-sheet .data-table th, .dyeing-entry-sheet .data-table td { padding: 0.75rem 0.85rem; }
+    .dyeing-entry-sheet .data-table td { border-bottom: 2px solid #d5d8e2; }
     .dyeing-entry-sheet .data-table input, .dyeing-entry-sheet .data-table select { min-width: 90px; max-width: 150px; }
-    .dyeing-entry-rolls { min-width: 430px; }
-    .dyeing-entry-roll-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; color: #737580; font-size: 0.75rem; }
-    .dyeing-entry-roll { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 0.65fr auto; gap: 0.35rem; align-items: center; padding: 0.25rem 0; border-top: 1px solid #efeff3; }
+    .dyeing-entry-rolls { min-width: 440px; }
+    .dyeing-entry-rolls-box {
+        background: #ffffff;
+        border: 1px solid #dcdfe6;
+        border-radius: 12px;
+        padding: 0.55rem 0.7rem;
+        box-shadow: 0 1px 3px rgba(32, 33, 36, 0.04);
+    }
+    .dyeing-entry-sheet .data-table tbody tr:nth-of-type(even) .dyeing-entry-rolls-box,
+    .dyeing-entry-sheet .data-table tbody tr.row-even .dyeing-entry-rolls-box {
+        background: #ffffff;
+        border-color: #d0d4de;
+    }
+    .dyeing-entry-roll-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; padding-bottom: 0.35rem; border-bottom: 1px solid #eef0f5; color: #50525d; font-size: 0.75rem; font-weight: 600; }
+    .dyeing-entry-roll { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr 0.65fr auto; gap: 0.35rem; align-items: center; padding: 0.25rem 0; }
+    .dyeing-entry-roll + .dyeing-entry-roll { border-top: 1px dashed #e2e5eb; }
     .dyeing-entry-roll .btn { white-space: nowrap; }
     .btn-xs { min-height: 30px; padding: 0.3rem 0.55rem; font-size: 0.7rem; border-radius: 8px; }
     .cutting-spreadsheet .data-table th, .cutting-spreadsheet .data-table td, .cutting-spreadsheet-panel .data-table th, .cutting-spreadsheet-panel .data-table td { padding: 0.65rem 0.8rem; }
     .cutting-spreadsheet-panel .table-wrap { max-height: 32rem; }
-    .cutting-spreadsheet tbody tr:nth-child(even), .cutting-spreadsheet-panel tbody tr:nth-child(even) { background: #fbfbfd; }
+    .cutting-spreadsheet tbody tr:nth-child(even), .cutting-spreadsheet-panel tbody tr:nth-child(even),
+    .cutting-spreadsheet tbody tr:nth-of-type(even), .cutting-spreadsheet-panel tbody tr:nth-of-type(even) { background: #f7f9fc; }
     .staff-profile-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
     .staff-avatar { display: inline-flex; height: 3.75rem; width: 3.75rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 1.25rem; color: #394513; background: linear-gradient(135deg, #eff6cc, #d5ff27); font-size: 1.35rem; font-weight: 700; }
     .status-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: .3rem .65rem; font-size: .7rem; font-weight: 700; }
@@ -290,9 +305,13 @@
     .pill { @apply inline-flex items-center px-2.5 py-1 text-xs font-medium; color: #4e5e0d; border: 1px solid #e1e9be; background: #f2f7dc; border-radius: 8px; }
     .table-wrap { @apply overflow-auto; max-height: 72vh; border-radius: 0 0 22px 22px; }
     .data-table { @apply w-full text-left text-sm; border-collapse: separate; border-spacing: 0; }
-    .data-table th { @apply sticky top-0 z-10 whitespace-nowrap px-5 py-3.5 text-xs font-medium; font-size: 10px; letter-spacing: 1px; color: #737580; background: #f7f7fa; border-bottom: 1px solid #e9e9ef; }
-    .data-table td { @apply px-5 py-4 align-middle; border-bottom: 1px solid #efeff3; }
-    .data-table tbody tr:hover { background: #fafaf2; }
+    .data-table th { @apply sticky top-0 z-10 whitespace-nowrap px-5 py-3.5 text-xs font-medium; font-size: 10px; letter-spacing: 1px; color: #737580; background: #f7f7fa; border-bottom: 1px solid #dcdfe6; }
+    .data-table td { @apply px-5 py-4 align-middle; border-bottom: 1px solid #e2e4ea; }
+    .data-table tbody tr { background-color: #ffffff; transition: background-color 0.15s ease; }
+    .data-table tbody tr:nth-of-type(even), .data-table tbody tr.row-even { background-color: #f7f9fc; }
+    .data-table tbody tr:hover { background-color: #edf3dc !important; }
+    .data-table tbody tr:focus-within { background-color: #eaf1d4 !important; }
+    .data-table tbody tr.sewing-source-selected { background-color: #f1f8d8 !important; }
     .data-table tbody tr:last-child td { border-bottom-color: transparent; }
     .data-table tfoot td { @apply sticky bottom-0 z-10 font-semibold; background: #f0f5df; color: #394513; border-top: 1px solid #dfe8bf; }
     .data-table input { min-width: 105px; max-width: 180px; width: 100%; }
@@ -308,10 +327,12 @@
     .roll-color-meta { @apply flex flex-wrap items-center gap-4 text-xs; color: #646c50; }
     .roll-table-wrap { overflow-x: auto; }
     .roll-selection-table { width: 100%; min-width: 570px; border-collapse: collapse; text-align: left; }
-    .roll-selection-table thead th { @apply px-5 py-3 text-xs font-medium; color: var(--color-muted); background: #fafbf8; border-bottom: 1px solid #edf0e7; }
-    .roll-selection-table tbody th, .roll-selection-table tbody td { @apply px-5 py-4; border-bottom: 1px solid #edf0e7; }
+    .roll-selection-table thead th { @apply px-5 py-3 text-xs font-medium; color: var(--color-muted); background: #fafbf8; border-bottom: 1px solid #dcdfe6; }
+    .roll-selection-table tbody th, .roll-selection-table tbody td { @apply px-5 py-4; border-bottom: 1.5px solid #dde0e8; }
+    .roll-selection-table tbody tr:nth-of-type(even) { background: #f7f9fc; }
+    .roll-selection-table tbody tr:hover { background: #edf3dc; }
     .roll-selection-table tbody tr:last-child > * { border-bottom: 0; }
-    .roll-selection-table tbody th { width: 110px; vertical-align: top; padding-top: 24px; background: #fdfdfa; }
+    .roll-selection-table tbody th { width: 110px; vertical-align: top; padding-top: 24px; background: transparent; }
     .roll-dia-number { @apply text-lg font-semibold tabular-nums; color: var(--color-ink); }
     .roll-dia-count { display: block; margin-left: 28px; white-space: nowrap; font-weight: 400; }
     .roll-dia-weight { width: 150px; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }

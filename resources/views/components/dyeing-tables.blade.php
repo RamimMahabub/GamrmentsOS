@@ -32,9 +32,9 @@
                             <span>Color {{ $blockIndex + 1 }} · {{ $block->color->name }}</span>
                         </th>
                     </tr>
-                    @foreach($block->rows as $row)
+                    @foreach($block->rows as $rowIndex => $row)
                         @php $rolls = collect($row->rolls ?? []); @endphp
-                        <tr>
+                        <tr class="{{ $rowIndex % 2 === 1 ? 'row-even' : '' }}">
                             <td class="dyeing-spreadsheet-color">{{ $block->color->name }}</td>
                             <td><span class="pill">{{ $row->dia }}</span></td>
                             <td class="number">{{ $row->given_fabric_kg }}</td>

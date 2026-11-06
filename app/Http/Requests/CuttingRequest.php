@@ -22,7 +22,19 @@ class CuttingRequest extends ManufacturingRequest
                 if (($row['remaining_fabric'] ?? '') === '') {
                     $row['remaining_fabric'] = '0';
                 }
-            } $this->merge(['rows' => $rows]);
+                if (($row['quantity_mode'] ?? null) === 'dozen_pieces') {
+                    $hasDozens = isset($row['quantity_dozens']) && trim((string) $row['quantity_dozens']) !== '';
+                    $hasPieces = isset($row['quantity_pieces']) && trim((string) $row['quantity_pieces']) !== '';
+                    if ($this->route()->defaults['cutting_type'] !== 'neck') {
+                        if ($hasDozens && ! $hasPieces) {
+                            $row['quantity_pieces'] = '0';
+                        } elseif (! $hasDozens && ! $hasPieces) {
+                            unset($row['quantity_mode'], $row['quantity_dozens'], $row['quantity_pieces']);
+                        }
+                    }
+                }
+            }
+            $this->merge(['rows' => $rows]);
         }
     }
 
@@ -32,6 +44,7 @@ class CuttingRequest extends ManufacturingRequest
             'cutting_date' => ['required', 'date_format:Y-m-d'], 'staff_id' => ['required', 'integer', Rule::exists('staffs', 'id')->where('is_active', true)], 'notes' => ['nullable', 'string', 'max:10000'],
             'rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*' => ['required', 'array'],
             'rows.*.roll_id' => $this->route()->defaults['cutting_type'] === 'neck' ? ['exclude'] : ['required', 'integer', 'distinct', 'exists:returned_rolls,id'],
+            'rows.*.roll_weight_kg' => $this->route()->defaults['cutting_type'] === 'neck' ? ['exclude'] : ['nullable', new DecimalInput(3, true, '999999999.999')],
             'rows.*.source_body_row_id' => $this->route()->defaults['cutting_type'] === 'neck' ? ['required', 'integer', 'distinct', 'exists:cutting_job_rolls,id'] : ['exclude'],
             'rows.*.dozens' => ['nullable', new DecimalInput(3, true, '999999999.999')],
             'rows.*.quantity_mode' => ['nullable', Rule::in(['dozen', 'pieces', 'dozen_pieces'])],

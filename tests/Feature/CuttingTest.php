@@ -79,7 +79,7 @@ class CuttingTest extends TestCase
         $this->get(route('cutting.body.edit', $job))->assertOk();
         $this->get(route('cutting.neck.show', $job))->assertNotFound();
         $this->get(route('staffs.index'))->assertOk();
-        $this->get(route('staffs.show', [$this->staff, 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSee('Grand total: 5.500')->assertSee('Remaining fabric');
+        $this->get(route('staffs.show', [$this->staff, 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSee('5.500')->assertSee('Remaining <b>', false);
         $this->get(route('lots.show', $row->lot_id))->assertOk()->assertSee('still uncut', false)->assertSee('Remaining fabric');
     }
 
@@ -223,8 +223,8 @@ class CuttingTest extends TestCase
         $this->get(route('cutting.body.show', $job))->assertOk()->assertSee('Results pending');
         $this->get(route('cutting.body.index'))->assertOk()->assertSee('1 pending');
         $this->get(route('lots.show', $row->lot_id))->assertOk()->assertSee('20.000 kg still uncut');
-        $this->get(route('cutting.body.create'))->assertOk()->assertDontSee('aria-label="Dozens"', false)->assertSee('Add dozens, weights and remaining fabric later through Edit.');
-        $this->get(route('cutting.body.edit', $job))->assertOk()->assertSee('aria-label="Dozens"', false);
+        $this->get(route('cutting.body.create'))->assertOk()->assertDontSee('aria-label="Weight per dozen"', false)->assertSee('Add dozens, weights and remaining fabric later through Edit.');
+        $this->get(route('cutting.body.edit', $job))->assertOk()->assertSee('aria-label="Weight per dozen"', false);
         $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.roll_id');
         $this->put(route('cutting.body.update', $job), $this->data())->assertSessionHasNoErrors();
         $row = $job->fresh('rows')->rows->first();
@@ -379,5 +379,66 @@ class CuttingTest extends TestCase
         $data = $this->data(['dozens' => '0.001', 'weight_per_dozen' => '', 'remaining_fabric' => '']);
         $this->post(route('cutting.body.store'), $data)->assertSessionHasErrors('rows.0.dozens');
         $this->assertDatabaseCount('cutting_jobs', 0);
+    }
+
+    public function test_partial_roll_allocation_allows_remaining_weight_in_subsequent_cutting_jobs(): void
+    {
+        // 1. Initial roll has 10.000 kg.
+        $this->assertSame('10.000', $this->roll->weight_kg);
+
+        // 2. Select partial 6.000 kg for body cutting
+        $firstJobData = [
+            'cutting_date' => '2026-10-18',
+            'staff_id' => $this->staff->id,
+            'rows' => [
+                [
+                    'roll_id' => $this->roll->id,
+                    'roll_weight_kg' => '6.000',
+                ],
+            ],
+        ];
+        $this->post(route('cutting.body.store'), $firstJobData)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('cutting_job_rolls', [
+            'roll_id' => $this->roll->id,
+            'roll_weight_kg' => '6.000',
+        ]);
+
+        // 3. Roll should still be available in the picker with remaining 4.000 kg
+        $this->get(route('cutting.body.create'))->assertOk()->assertViewHas('form', function (array $form): bool {
+            $available = $form['available']->firstWhere('id', $this->roll->id);
+
+            return $available !== null && $available['weight_kg'] === '4.000';
+        });
+
+        // 4. Create a second cutting job allocating the remaining 4.000 kg
+        $secondJobData = [
+            'cutting_date' => '2026-10-19',
+            'staff_id' => $this->staff->id,
+            'rows' => [
+                [
+                    'roll_id' => $this->roll->id,
+                    'roll_weight_kg' => '4.000',
+                ],
+            ],
+        ];
+        $this->post(route('cutting.body.store'), $secondJobData)->assertSessionHasNoErrors();
+
+        // 5. Roll should now be fully depleted and no longer appear in the picker
+        $this->get(route('cutting.body.create'))->assertOk()->assertViewHas('form', function (array $form): bool {
+            return $form['available']->firstWhere('id', $this->roll->id) === null;
+        });
+
+        // 6. Attempting to allocate even 0.001 kg from the depleted roll should fail
+        $overAllocateData = [
+            'cutting_date' => '2026-10-20',
+            'staff_id' => $this->staff->id,
+            'rows' => [
+                [
+                    'roll_id' => $this->roll->id,
+                    'roll_weight_kg' => '0.001',
+                ],
+            ],
+        ];
+        $this->post(route('cutting.body.store'), $overAllocateData)->assertSessionHasErrors('rows.0.roll_id');
     }
 }

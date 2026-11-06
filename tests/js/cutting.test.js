@@ -71,6 +71,26 @@ test('rolls can be reserved before results; quantities default to automatic weig
  assert.equal(form.invalid, true);
 });
 
+test('body rolls default to whole roll and support partial roll selection', () => {
+ const available = [{id: 1, lot_id: 10, lot: 'LOT-A', color: 'Black', dia: 32, number: '32ROLL01', weight_kg: '22.452'}];
+ const form = cuttingFactories.cuttingForm({available, rows: [], isNeck: false, canRecordResults: false});
+ form.toggle(available[0]);
+ assert.equal(form.rows.length, 1);
+ assert.equal(form.rows[0].roll_weight_kg, '22.452');
+ assert.equal(form.isPartial(form.rows[0], available[0]), false);
+ assert.equal(form.inputWeight(form.rows[0]), '22.452');
+ form.rows[0].roll_weight_kg = '10.000';
+ assert.equal(form.isPartial(form.rows[0], available[0]), true);
+ assert.equal(form.remainingRollWeight(form.rows[0], available[0]), '12.452');
+ assert.equal(form.inputWeight(form.rows[0]), '10.000');
+ assert.equal(form.invalid, false);
+ form.rows[0].roll_weight_kg = '25.000';
+ assert.equal(form.invalid, true);
+ form.syncRollWeight(form.rows[0], available[0]);
+ assert.equal(form.rows[0].roll_weight_kg, '22.452');
+ assert.equal(form.invalid, false);
+});
+
 test('neck batches reserve partial dozens and preview proportional body weight', () => {
  const source = {id: 9, source_body_row_id: 25, lot_id: 6, lot: 'GR-091026', color: 'Black', color_hex: '#111111', dia: 28, number: 'R-9', dozens: '12.000', weight_kg: '1.680'};
  const form = cuttingFactories.cuttingForm({isNeck: true, available: [source], rows: [], canRecordResults: false});
@@ -240,6 +260,27 @@ test('body rows support combined dozen and piece quantities', () => {
  assert.equal(form.quantity(row), '2 dozen 4 pc');
  assert.equal(form.values(row).pieces, '28.000');
  assert.equal(form.invalid, false);
+});
+
+test('entering 26 pieces automatically balances to 2 dozen and 2 pieces', () => {
+ const source = {id: 1, source_body_row_id: 10, pieces: '180.000', dozens: '15.000', weight_kg: '0.900', lot_id: 2, lot: 'LOT', color: 'Black', dia: 28, number: 'R-1'};
+ const form = cuttingFactories.cuttingForm({isNeck: true, available: [source], rows: [], canRecordResults: true});
+ form.toggle(source);
+ const row = form.rows[0];
+ row.quantity_dozens = '';
+ row.quantity_pieces = '26';
+ form.normalizePieces(row);
+ assert.equal(row.quantity_dozens, '2');
+ assert.equal(row.quantity_pieces, '2');
+ assert.equal(form.quantity(row), '2 dozen 2 pc');
+
+ // Also test when there are existing dozens (e.g. 5 dozen + 26 pc -> 7 dozen 2 pc)
+ row.quantity_dozens = '5';
+ row.quantity_pieces = '26';
+ form.normalizePieces(row);
+ assert.equal(row.quantity_dozens, '7');
+ assert.equal(row.quantity_pieces, '2');
+ assert.equal(form.quantity(row), '7 dozen 2 pc');
 });
 
 test('automatic rate outside storage precision is invalid before submit', () => {

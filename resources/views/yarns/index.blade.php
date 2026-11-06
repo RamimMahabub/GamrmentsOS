@@ -216,14 +216,14 @@
                         <th class="number pr-6 text-[10px] font-bold tracking-widest text-muted uppercase">Quick Control</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#efeff3]">
+                <tbody class="divide-y divide-[#e2e4ea]">
                     @forelse($yarns as $index => $yarn)
                         @php
                             $availableKg = (string)($yarn->available_kg ?? '0');
                             $isDepleted = \App\Support\Decimal::of($availableKg)->isZero() || \App\Support\Decimal::of($availableKg)->isNegative();
                             $isLow = !$isDepleted && \App\Support\Decimal::of($availableKg)->isLessThan('100');
                         @endphp
-                        <tr class="group transition-all duration-150 hover:bg-[#fafaf3]">
+                        <tr class="group transition-all duration-150 hover:bg-[#edf3dc] even:bg-[#f7f9fc]">
                             <!-- Row Index -->
                             <td class="text-center font-mono text-xs text-muted/80">
                                 {{ str_pad((string)($yarns->firstItem() + $index), 2, '0', STR_PAD_LEFT) }}
