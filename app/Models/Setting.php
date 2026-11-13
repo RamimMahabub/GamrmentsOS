@@ -13,7 +13,9 @@ class Setting extends AuditedModel
 
     public static function getValue(string $key, mixed $default = null): mixed
     {
-        return static::where('key', $key)->value('value') ?? $default;
+        $setting = static::where('key', $key)->first();
+
+        return $setting !== null ? $setting->value : $default;
     }
 
     public static function putValue(string $key, mixed $value): void

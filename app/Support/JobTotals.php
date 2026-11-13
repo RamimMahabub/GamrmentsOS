@@ -9,6 +9,25 @@ final class JobTotals
 {
     public static function pipeline(Lot $lot): array
     {
+        if ($lot->fabric_source === 'market_purchase' || ! $lot->knittingJob) {
+            $rolls = $lot->returnedRolls;
+            $rollWeight = Decimal::scale(Decimal::sum($rolls->pluck('weight_kg')));
+
+            return [
+                'input' => '0.000',
+                'output' => '0.000',
+                'knitting_loss' => '0.000',
+                'given' => '0.000',
+                'undyed' => '0.000',
+                'pending' => '0.000',
+                'dyeing_loss' => '0.000',
+                'returned' => $rollWeight,
+                'roll_weight' => $rollWeight,
+                'roll_count' => $rolls->count(),
+                'unitemized' => '0.000',
+            ];
+        }
+
         $knitting = self::knitting($lot->knittingJob);
         $rows = $lot->dyeingJobs->flatMap(fn ($job) => $job->colorBlocks->flatMap->rows);
         $given = Decimal::scale(Decimal::sum($rows->pluck('given_fabric_kg')));

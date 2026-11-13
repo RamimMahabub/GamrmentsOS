@@ -10,7 +10,10 @@ class SewingJob extends AuditedModel
 {
     protected function casts(): array
     {
-        return ['sewing_date' => 'date'];
+        return [
+            'sewing_date' => 'date',
+            'rate_per_dozen' => 'decimal:6',
+        ];
     }
 
     public function staff(): BelongsTo

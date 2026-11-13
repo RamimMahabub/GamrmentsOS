@@ -9,7 +9,9 @@ class DyeingRequest extends ManufacturingRequest
     public function rules(): array
     {
         return ['company_id' => ['required', 'integer'], 'lot_id' => ['required', 'integer'], 'entry_date' => ['required', 'date_format:Y-m-d'],
-            'return_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:entry_date'], 'notes' => ['nullable', 'string', 'max:10000'],
+            'return_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:entry_date'],
+            'rate_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:10000'],
             'confirm_excess_return' => ['sometimes', 'boolean'], 'blocks' => ['required', 'array', 'min:1', 'max:50'],
             'blocks.*.color' => ['required', 'string', 'max:255'], 'blocks.*.rows' => ['required', 'array', 'min:1', 'max:100'],
             'blocks.*.rows.*.dia' => ['required', 'integer', 'min:1', 'max:1000'], 'blocks.*.rows.*.given_fabric_kg' => ['required', new DecimalInput],

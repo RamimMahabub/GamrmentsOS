@@ -9,7 +9,13 @@ class Company extends AuditedModel
 {
     protected function casts(): array
     {
-        return ['is_knitting' => 'boolean', 'is_dyeing' => 'boolean', 'is_active' => 'boolean'];
+        return [
+            'is_knitting' => 'boolean',
+            'is_dyeing' => 'boolean',
+            'is_active' => 'boolean',
+            'default_knitting_rate_per_kg' => 'decimal:6',
+            'default_dyeing_rate_per_kg' => 'decimal:6',
+        ];
     }
 
     public function contacts(): HasMany

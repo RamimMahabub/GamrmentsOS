@@ -16,10 +16,10 @@ export function quantityText(pieces) {
 }
 function quantityFields(pieces) {
     const count = decimal(pieces);
-    if (!count.eq(count.round(0))) return {quantity_mode: '', pieces: count.toFixed(3), dozens: count.div('12').toFixed(3)};
+    if (!count.eq(count.round(0))) return { quantity_mode: '', pieces: count.toFixed(3), dozens: count.div('12').toFixed(3) };
     const dozens = count.div('12').round(0, 0);
     const remainder = count.minus(dozens.times('12'));
-    return {quantity_mode: 'dozen_pieces', quantity_dozens: dozens.toString(), quantity_pieces: remainder.toString(), pieces: count.toFixed(3), dozens: count.div('12').toFixed(3)};
+    return { quantity_mode: 'dozen_pieces', quantity_dozens: dozens.toString(), quantity_pieces: remainder.toString(), pieces: count.toFixed(3), dozens: count.div('12').toFixed(3) };
 }
 function availablePieces(roll) { return roll.pieces == null ? decimal(roll.dozens).times('12') : decimal(roll.pieces); }
 
@@ -56,7 +56,7 @@ export function cuttingRow(row, roll) {
 export function cuttingSummary(rows, available) {
     const groups = new Map();
     const add = (key, values) => {
-        const total = groups.get(key) || Object.fromEntries(['dozens','pieces','roll_weight_kg','cut_weight_kg','cutting_scrap_kg','remaining_fabric_kg','waste_kg'].map(key => [key, '0.000']));
+        const total = groups.get(key) || Object.fromEntries(['dozens', 'pieces', 'roll_weight_kg', 'cut_weight_kg', 'cutting_scrap_kg', 'remaining_fabric_kg', 'waste_kg'].map(key => [key, '0.000']));
         for (const key of Object.keys(total)) total[key] = new Big(total[key]).plus(values[key]).toFixed(3);
         groups.set(key, total);
     };
@@ -65,7 +65,7 @@ export function cuttingSummary(rows, available) {
         if (!roll) continue;
         try { const values = cuttingRow(row, roll); add(`${roll.lot ? roll.lot + ' / ' : ''}${roll.color} / DIA ${roll.dia}`, values); add('Grand total', values); } catch { /* Incomplete inputs have no preview yet. */ }
     }
-    return [...groups].sort(([a],[b]) => a === 'Grand total' ? 1 : b === 'Grand total' ? -1 : a.localeCompare(b)).map(([label, totals]) => ({ label, ...totals, dozens: new Big(totals.pieces).div('12').toFixed(3), waste_percent: new Big(totals.roll_weight_kg).eq('0') ? '0.00' : new Big(totals.waste_kg).times('100').div(totals.roll_weight_kg).toFixed(2) }));
+    return [...groups].sort(([a], [b]) => a === 'Grand total' ? 1 : b === 'Grand total' ? -1 : a.localeCompare(b)).map(([label, totals]) => ({ label, ...totals, dozens: new Big(totals.pieces).div('12').toFixed(3), waste_percent: new Big(totals.roll_weight_kg).eq('0') ? '0.00' : new Big(totals.waste_kg).times('100').div(totals.roll_weight_kg).toFixed(2) }));
 }
 export function registerCutting(Alpine) {
     Alpine.data('cuttingForm', config => ({
@@ -87,9 +87,9 @@ export function registerCutting(Alpine) {
         get lotRolls() { return this.available.filter(roll => String(roll.lot_id) === this.lot); },
         get selectedLot() { return this.lots.find(item => String(item.id) === this.lot); },
         get filtered() { return this.lotRolls.filter(roll => (!this.search || `${roll.number} ${roll.color} ${roll.dia}`.toLowerCase().includes(this.search.toLowerCase())) && (!this.color || roll.color === this.color) && (!this.dia || String(roll.dia) === this.dia)); },
-        get lots() { return [...new Map(this.available.map(roll => [roll.lot_id, {id: roll.lot_id, name: roll.lot}])).values()]; },
+        get lots() { return [...new Map(this.available.map(roll => [roll.lot_id, { id: roll.lot_id, name: roll.lot }])).values()]; },
         get colors() { return [...new Set(this.lotRolls.map(roll => roll.color))].sort(); },
-        get dias() { return [...new Set(this.lotRolls.filter(roll => !this.color || roll.color === this.color).map(roll => String(roll.dia)))].sort((a,b) => Number(a) - Number(b)); },
+        get dias() { return [...new Set(this.lotRolls.filter(roll => !this.color || roll.color === this.color).map(roll => String(roll.dia)))].sort((a, b) => Number(a) - Number(b)); },
         get colorGroups() {
             const colors = new Map();
             for (const roll of this.filtered) {
@@ -99,9 +99,9 @@ export function registerCutting(Alpine) {
                 if (!dias.has(key)) dias.set(key, []);
                 dias.get(key).push(roll);
             }
-            return [...colors].sort(([a],[b]) => a.localeCompare(b)).map(([color,dias]) => {
-                const groups = [...dias].sort(([a],[b]) => Number(a) - Number(b)).map(([dia,rolls]) => ({dia, rolls: rolls.sort((a,b) => a.number.localeCompare(b.number, undefined, {numeric:true}))}));
-                return {color, hex: groups[0].rolls[0].color_hex || '#686a74', dias: groups, rolls: groups.flatMap(group => group.rolls)};
+            return [...colors].sort(([a], [b]) => a.localeCompare(b)).map(([color, dias]) => {
+                const groups = [...dias].sort(([a], [b]) => Number(a) - Number(b)).map(([dia, rolls]) => ({ dia, rolls: rolls.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })) }));
+                return { color, hex: groups[0].rolls[0].color_hex || '#686a74', dias: groups, rolls: groups.flatMap(group => group.rolls) };
             });
         },
         weight(rolls) { return rolls.reduce((total, roll) => total.plus(roll.weight_kg), new Big('0')).toFixed(3); },
@@ -125,7 +125,7 @@ export function registerCutting(Alpine) {
             }
             this.syncQuantity(row);
         },
-        syncQuantity(row) { try { row.pieces = cuttingPieces({...row, pieces: null}).toFixed(3); row.dozens = new Big(row.pieces).div('12').toFixed(3); } catch { /* Keep incomplete input editable. */ } },
+        syncQuantity(row) { try { row.pieces = cuttingPieces({ ...row, pieces: null }).toFixed(3); row.dozens = new Big(row.pieces).div('12').toFixed(3); } catch { /* Keep incomplete input editable. */ } },
         changeQuantityMode(row) {
             const pieces = decimal(row.pieces ?? '0');
             const fields = quantityFields(pieces);
@@ -175,7 +175,7 @@ export function registerCutting(Alpine) {
                 const entered = decimal(row.roll_weight_kg);
                 const max = decimal(roll.weight_kg);
                 if (entered.gt(max)) row.roll_weight_kg = roll.weight_kg;
-            } catch {}
+            } catch { }
         },
         selected(id) { return this.rows.some(row => String(row.roll_id) === String(id)); },
         selectedRow(id) { return this.rows.find(row => String(row.roll_id) === String(id)); },
@@ -193,13 +193,13 @@ export function registerCutting(Alpine) {
                 const source = this.roll(row);
                 if (!source.id) continue;
                 const key = `${source.lot_id}:${source.color}:${source.dia}`;
-                if (!groups.has(key)) groups.set(key, {key, lot: source.lot, color: source.color, hex: source.color_hex || '#686a74', dia: source.dia, count: 0, hasDozens: false, pieces: new Big('0')});
+                if (!groups.has(key)) groups.set(key, { key, lot: source.lot, color: source.color, hex: source.color_hex || '#686a74', dia: source.dia, count: 0, hasDozens: false, pieces: new Big('0') });
                 const group = groups.get(key);
                 group.count++;
                 group.hasDozens ||= this.isNeck || row.quantity_mode || String(row.dozens || '').trim() !== '';
                 try { group.pieces = group.pieces.plus(this.isNeck || row.quantity_mode ? cuttingPieces(row) : decimal(row.dozens || '0').times('12')); } catch { /* Incomplete quantities do not contribute yet. */ }
             }
-            return [...groups.values()].map(group => ({...group, dozens: group.pieces.div('12').toFixed(3), quantity: quantityText(group.pieces)}));
+            return [...groups.values()].map(group => ({ ...group, dozens: group.pieces.div('12').toFixed(3), quantity: quantityText(group.pieces) }));
         },
         get summary() { return cuttingSummary(this.rows.filter(row => !this.pending(row)), this.available); },
         get invalid() {

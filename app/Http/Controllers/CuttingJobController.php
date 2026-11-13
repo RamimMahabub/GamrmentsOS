@@ -55,22 +55,40 @@ class CuttingJobController extends Controller
         $available = $type === 'neck' ? collect() : ReturnedRoll::with([
             'dyeingJob.lot',
             'dyeingRow.colorBlock.color',
-            'cuttingRows' => fn ($query) => $query->whereIn('cutting_type', ['body', 'rib'])->when($job->exists, fn ($query) => $query->where('cutting_job_id', '!=', $job->id)),
-        ])->where('is_available', true)->whereHas('dyeingJob')->orderBy('number')->get()->map(function ($roll): ?array {
+            'lot',
+            'color',
+            'cuttingRows' => fn ($query) => $query->whereIn('cutting_type', ['body', 'cutting', 'rib'])->when($job->exists, fn ($query) => $query->where('cutting_job_id', '!=', $job->id)),
+        ])->where('is_available', true)->where(function ($q): void {
+            $q->whereHas('dyeingJob')->orWhereNotNull('lot_id');
+        })->orderBy('number')->get()->map(function ($roll) use ($type): ?array {
+            $effectiveLot = $roll->getEffectiveLot();
+            if ($effectiveLot) {
+                // If cutting type is 'cutting', only show underpants lots
+                if ($type === 'cutting' && $effectiveLot->product_type === 'sando') {
+                    return null;
+                }
+                // If cutting type is 'body', only show sando lots
+                if ($type === 'body' && $effectiveLot->product_type !== 'sando') {
+                    return null;
+                }
+            }
+
             $usedWeight = Decimal::sum($roll->cuttingRows->pluck('roll_weight_kg'));
             $remainingWeight = Decimal::of($roll->weight_kg)->minus($usedWeight);
             if (! $remainingWeight->isPositive()) {
                 return null;
             }
 
+            $colorObj = $roll->getEffectiveColor();
+
             return [
                 'id' => $roll->id,
                 'number' => $roll->number,
-                'lot_id' => $roll->dyeingJob->lot_id,
-                'lot' => $roll->dyeingJob->lot->lot_number,
-                'color' => $roll->dyeingRow->colorBlock->color->name,
-                'color_hex' => $roll->dyeingRow->colorBlock->color->hex,
-                'dia' => $roll->dyeingRow->dia,
+                'lot_id' => $roll->getEffectiveLotId(),
+                'lot' => $effectiveLot?->lot_number ?? '',
+                'color' => $colorObj?->name ?? '',
+                'color_hex' => $colorObj?->hex ?? '#cbd9b6',
+                'dia' => $roll->getEffectiveDia(),
                 'weight_kg' => Decimal::scale($remainingWeight),
                 'total_weight_kg' => Decimal::scale($roll->weight_kg),
             ];

@@ -13,7 +13,7 @@
             @endphp
             <tr>
                 <td><a class="link" href="{{ route('lots.show', $first->lot_id) }}">{{ $first->lot->lot_number }}</a></td>
-                <td><span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full border border-line" style="background-color: {{ $first->roll->dyeingRow->colorBlock->color->hex }}"></span>{{ $first->color }}</span></td>
+                <td><span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full border border-line" style="background-color: {{ $first->roll?->getEffectiveColor()?->hex ?? '#cbd9b6' }}"></span>{{ $first->color }}</span></td>
                 <td><span class="pill">{{ $first->dia }}</span></td>
                 <td class="number">{{ $group->count() }}</td>
                 <td class="number">@if($group->whereNotNull('dozens')->isNotEmpty()){{ $first->cutting_type === 'neck' ? \App\Support\CuttingQuantity::display($pieces) : $quantity.' dozen' }}@else—@endif</td>

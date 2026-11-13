@@ -90,7 +90,7 @@ final class DyeingService
                     throw ValidationException::withMessages(['blocks' => 'DIA '.$dia.' has '.$available[$dia]['available_kg'].' kg remaining; requested '.D::scale($kg).' kg.']);
                 }
             }
-            $job->fill(['lot_id' => $lot->id, 'company_id' => $data['company_id'], 'entry_date' => $data['entry_date'], 'return_date' => $data['return_date'] ?? null, 'notes' => $data['notes'] ?? null]);
+            $job->fill(['lot_id' => $lot->id, 'company_id' => $data['company_id'], 'entry_date' => $data['entry_date'], 'return_date' => $data['return_date'] ?? null, 'rate_per_kg' => $data['rate_per_kg'] ?? null, 'notes' => $data['notes'] ?? null]);
             $job->save();
             foreach ($job->colorBlocks()->get() as $block) {
                 $block->rows()->get()->each->delete();

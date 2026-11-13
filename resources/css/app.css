@@ -207,12 +207,22 @@
     .sewing-compact-quantity b { padding-bottom: .6rem; color: #9b9da7; font-size: .8rem; }
     .sewing-compact-quantity .sewing-stage-quantity-input { max-width: 5.2rem !important; }
     .sewing-stage-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; margin: 0 auto; display: block; }
+    .packing-stage-table { min-width: 820px; table-layout: fixed; }
+    .packing-stage-table th:nth-child(1), .packing-stage-table td:nth-child(1) { width: 3.5rem; text-align: center; }
+    .packing-stage-table th:nth-child(2), .packing-stage-table td:nth-child(2) { width: 15%; }
+    .packing-stage-table th:nth-child(3), .packing-stage-table td:nth-child(3) { width: 10%; }
+    .packing-stage-table th:nth-child(4), .packing-stage-table td:nth-child(4) { width: 10%; text-align: center; }
+    .packing-stage-table th:nth-child(5), .packing-stage-table td:nth-child(5) { width: 16%; }
+    .packing-stage-table th:nth-child(6), .packing-stage-table td:nth-child(6) { width: 25%; }
+    .packing-stage-table th:nth-child(7), .packing-stage-table td:nth-child(7) { width: 12%; }
+    .packing-stage-table th:nth-child(8), .packing-stage-table td:nth-child(8) { width: 12%; }
+    .packing-stage-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; max-width: 1.15rem; margin: 0 auto; display: block; }
     .sewing-station-board { margin-bottom: 1.5rem; border: 1px solid #dedee5; border-radius: 1.25rem; overflow: hidden; background: #fff; box-shadow: 0 5px 18px #24243908; }
     .sewing-station-board-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
     .sewing-station-board-heading h2 { margin: .15rem 0 .25rem; color: #202124; font-size: 1.1rem; font-weight: 750; }
     .sewing-flow-label { padding-top: .5rem; color: #777984; font-size: .68rem; font-weight: 700; white-space: nowrap; }
     .sewing-flow-label b { margin: 0 .3rem; color: #ccd994; }
-    .sewing-station-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; padding: 1rem; background: #f8f8fa; }
+    .sewing-station-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: 1rem; background: #f8f8fa; }
     .sewing-station-card { position: relative; display: flex; min-height: 11rem; flex-direction: column; align-items: flex-start; border: 1px solid #e1e2e8; border-radius: 1rem; padding: 1rem; color: inherit; background: #fff; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
     .sewing-station-card:hover { border-color: #b7c875; box-shadow: 0 6px 16px #52650018; transform: translateY(-2px); }
     .sewing-station-card.active { border-color: #9caf4a; background: #f7f9ed; box-shadow: 0 5px 16px #52650018; }
@@ -257,17 +267,17 @@
     .sewing-overview-kpi strong { margin: .35rem 0; color: #202124; font-size: 1.8rem; line-height: 1; }
     .sewing-overview-kpi-primary { border-color: #526500; background: #29320c; }
     .sewing-overview-kpi-primary span, .sewing-overview-kpi-primary small, .sewing-overview-kpi-primary strong { color: #e6efb7; }
-    .sewing-progress-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; padding: 1rem 1.25rem 1.25rem; }
+    .sewing-progress-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; padding: 1rem 1.25rem 1.25rem; }
     .sewing-progress-card { display: flex; min-height: 8.5rem; flex-direction: column; align-items: flex-start; border: 1px solid #e1e2e8; border-radius: 1rem; padding: .9rem 1rem; background: #fff; }
     .sewing-progress-icon { display: inline-flex; align-items: center; justify-content: center; height: 2rem; width: 2rem; border-radius: .65rem; color: #526500; background: #f0f5df; }
     .sewing-progress-label { margin-top: .8rem; color: #526500; font-size: .68rem; font-weight: 750; letter-spacing: .06em; }
     .sewing-progress-card strong { margin-top: .35rem; color: #202124; font-size: 1.25rem; }
     .sewing-progress-card strong small { color: #777984; font-size: .68rem; font-weight: 500; }
     .sewing-progress-card > span:last-child { margin-top: auto; color: #777984; font-size: .68rem; }
-    @media (max-width: 1050px) { .sewing-overview-head { flex-direction: column; } .sewing-progress-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 1050px) { .sewing-overview-head { flex-direction: column; } .sewing-progress-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 650px) { .sewing-overview-kpis, .sewing-progress-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 1050px) { .sewing-station-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sewing-flow-label { display: none; } }
-    @media (max-width: 650px) { .sewing-station-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sewing-station-board-heading { padding: 1rem; } }
+    @media (max-width: 1050px) { .sewing-station-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sewing-flow-label { display: none; } }
+    @media (max-width: 650px) { .sewing-station-grid { grid-template-columns: 1fr; } .sewing-station-board-heading { padding: 1rem; } }
     .sewing-workflow-head { display: flex; align-items: flex-start; gap: .85rem; padding: 1.35rem 1.5rem; border-bottom: 1px solid #e8e8ee; }
     .sewing-step-badge { display: inline-flex; height: 2rem; width: 2rem; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: .7rem; color: #fff; background: #526500; font-size: .85rem; font-weight: 800; }
     .sewing-workflow-head h2 { margin: 0; color: #202124; font-size: 1.05rem; font-weight: 750; }
@@ -314,7 +324,8 @@
     .data-table tbody tr.sewing-source-selected { background-color: #f1f8d8 !important; }
     .data-table tbody tr:last-child td { border-bottom-color: transparent; }
     .data-table tfoot td { @apply sticky bottom-0 z-10 font-semibold; background: #f0f5df; color: #394513; border-top: 1px solid #dfe8bf; }
-    .data-table input { min-width: 105px; max-width: 180px; width: 100%; }
+    .data-table input:not([type=checkbox]):not([type=radio]) { min-width: 105px; max-width: 180px; width: 100%; }
+    .data-table input[type=checkbox], .data-table input[type=radio] { min-width: 1.15rem; max-width: 1.15rem; width: 1.15rem; height: 1.15rem; margin: 0 auto; display: block; }
     .number { @apply text-right tabular-nums; font-feature-settings: "tnum"; }
     .roll-picker-empty { @apply flex flex-col items-center gap-2 px-6 py-12 text-center; }
     .roll-picker-symbol { @apply mb-2 flex h-12 w-12 items-center justify-center rounded-2xl; color: var(--color-accent); background: var(--color-accent-soft); }

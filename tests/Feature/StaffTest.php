@@ -17,7 +17,7 @@ class StaffTest extends TestCase
         $this->post(route('staffs.store'), ['name' => 'Rahim', 'phone' => '01712345678', 'role' => 'cutting_man', 'is_active' => true])->assertSessionHasNoErrors();
         $staff = Staff::firstOrFail();
         $this->get(route('staffs.index', ['q' => 'Rahim']))->assertOk()->assertSee('Rahim');
-        $this->get(route('staffs.show', $staff))->assertOk()->assertSee('Grand total: 0.000');
+        $this->get(route('staffs.show', $staff))->assertOk()->assertSee('Total output');
         $this->put(route('staffs.update', $staff), ['name' => 'Karim', 'phone' => '01712345678', 'role' => 'sewing_man', 'is_active' => true])->assertSessionHasNoErrors();
         $this->delete(route('staffs.destroy', $staff))->assertRedirect(route('staffs.index'));
         $this->assertDatabaseHas('staffs', ['id' => $staff->id, 'name' => 'Karim', 'is_active' => false]);

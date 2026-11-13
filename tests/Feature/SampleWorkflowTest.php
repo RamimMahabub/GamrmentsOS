@@ -81,6 +81,6 @@ class SampleWorkflowTest extends TestCase
         $this->assertSame($before, JobTotals::pipeline($job->lot->fresh())['returned']);
         $target = $job->fresh()->colorBlocks->firstWhere('color.name', $blocks[1]['color'])->rows->first();
         $this->assertContains($roll['number'], array_column($target->rolls, 'number'));
-        $this->get(route('dyeing-jobs.edit', $job))->assertOk()->assertSee('Roll color');
+        $this->get(route('dyeing-jobs.edit', $job))->assertOk()->assertSee('Color for roll');
     }
 }

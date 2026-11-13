@@ -92,7 +92,7 @@ final class KnittingService
                 }
             }
             $lot ??= $this->lots->create($yarns[$selected[0]], $data['entry_date']);
-            $job->fill(['lot_id' => $lot->id, 'company_id' => $data['company_id'], 'entry_date' => $data['entry_date'], 'delivery_date' => $data['delivery_date'] ?? null, 'input_unit' => $data['input_unit'], 'notes' => $data['notes'] ?? null]);
+            $job->fill(['lot_id' => $lot->id, 'company_id' => $data['company_id'], 'entry_date' => $data['entry_date'], 'delivery_date' => $data['delivery_date'] ?? null, 'input_unit' => $data['input_unit'], 'rate_per_kg' => $data['rate_per_kg'] ?? null, 'notes' => $data['notes'] ?? null]);
             $job->save();
             $job->yarnLinks()->get()->each->delete();
             foreach ($selected as $id) {

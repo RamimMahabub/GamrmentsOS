@@ -41,7 +41,10 @@ class CuttingRequest extends ManufacturingRequest
     public function rules(): array
     {
         return [
-            'cutting_date' => ['required', 'date_format:Y-m-d'], 'staff_id' => ['required', 'integer', Rule::exists('staffs', 'id')->where('is_active', true)], 'notes' => ['nullable', 'string', 'max:10000'],
+            'cutting_date' => ['required', 'date_format:Y-m-d'],
+            'staff_id' => ['required', 'integer', Rule::exists('staffs', 'id')->where('is_active', true)],
+            'rate_per_dozen' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:10000'],
             'rows' => ['required', 'array', 'min:1', 'max:500'], 'rows.*' => ['required', 'array'],
             'rows.*.roll_id' => $this->route()->defaults['cutting_type'] === 'neck' ? ['exclude'] : ['required', 'integer', 'distinct', 'exists:returned_rolls,id'],
             'rows.*.roll_weight_kg' => $this->route()->defaults['cutting_type'] === 'neck' ? ['exclude'] : ['nullable', new DecimalInput(3, true, '999999999.999')],

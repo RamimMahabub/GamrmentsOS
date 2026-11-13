@@ -6,8 +6,11 @@ return [
     ['label' => 'Companies', 'route' => 'companies.index', 'active' => 'companies.*', 'icon' => 'building'],
     ['label' => 'Knitting', 'route' => 'knitting-jobs.index', 'active' => 'knitting-jobs.*', 'icon' => 'layers'],
     ['label' => 'Dyeing', 'route' => 'dyeing-jobs.index', 'active' => 'dyeing-jobs.*', 'icon' => 'drop'],
+    ['label' => 'Fabric & Rolls', 'route' => 'fabric.index', 'active' => 'fabric.*', 'icon' => 'roll'],
     ['label' => 'Cutting', 'route' => 'cutting.body.index', 'active' => 'cutting.*', 'icon' => 'scissors'],
     ['label' => 'Sewing', 'route' => 'sewing-jobs.index', 'active' => 'sewing-jobs.*', 'icon' => 'factory'],
+    ['label' => 'Packing', 'route' => 'packing-jobs.index', 'active' => 'packing*', 'icon' => 'package'],
     ['label' => 'Staffs', 'route' => 'staffs.index', 'active' => 'staffs.*', 'icon' => 'users'],
+    ['label' => 'Expenses', 'route' => 'expenses.index', 'active' => 'expenses.*', 'icon' => 'receipt'],
     ['label' => 'Settings', 'route' => 'settings.edit', 'active' => 'settings.*', 'icon' => 'settings'],
 ];

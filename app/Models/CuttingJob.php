@@ -10,7 +10,10 @@ class CuttingJob extends AuditedModel
 {
     protected function casts(): array
     {
-        return ['cutting_date' => 'date'];
+        return [
+            'cutting_date' => 'date',
+            'rate_per_dozen' => 'decimal:6',
+        ];
     }
 
     public function staff(): BelongsTo

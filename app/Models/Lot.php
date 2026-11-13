@@ -8,9 +8,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Lot extends AuditedModel
 {
+    protected $attributes = [
+        'product_type' => 'sando',
+        'fabric_source' => 'internal_manufacturing',
+    ];
+
+    public function isUnderpants(): bool
+    {
+        return in_array($this->product_type, ['boxer', 'underwear'], true);
+    }
+
     protected function casts(): array
     {
-        return ['lot_date' => 'date'];
+        return [
+            'lot_date' => 'date',
+            'carrying_cost_per_dozen' => 'decimal:6',
+            'thread_cost_per_dozen' => 'decimal:6',
+        ];
     }
 
     public function knittingJob(): HasOne
@@ -28,16 +42,33 @@ class Lot extends AuditedModel
         return $this->hasMany(SewingJobRow::class);
     }
 
+    public function packingRows(): HasMany
+    {
+        return $this->hasMany(PackingJobRow::class);
+    }
+
     public function dyeingJobs(): HasMany
     {
         return $this->hasMany(DyeingJob::class);
     }
 
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(FactoryExpense::class);
+    }
+
+    public function returnedRolls(): HasMany
+    {
+        return $this->hasMany(ReturnedRoll::class);
+    }
+
     public function syncCurrentStage(): string
     {
-        $stage = 'knitting';
+        $stage = $this->fabric_source === 'market_purchase' ? 'cutting' : 'knitting';
 
-        if ($this->sewingRows()->exists()) {
+        if ($this->packingRows()->exists()) {
+            $stage = 'packing';
+        } elseif ($this->sewingRows()->exists()) {
             $stage = 'sewing';
         } elseif ($this->cuttingRows()->exists()) {
             $stage = 'cutting';

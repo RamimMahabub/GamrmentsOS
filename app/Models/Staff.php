@@ -24,6 +24,11 @@ class Staff extends Model
         return $this->hasMany(SewingJob::class);
     }
 
+    public function packingJobs(): HasMany
+    {
+        return $this->hasMany(PackingJob::class);
+    }
+
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];

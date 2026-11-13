@@ -35,6 +35,10 @@ final class FabricAvailability
 
     public function forLot(Lot $lot, ?int $exceptJobId = null): array
     {
+        if ($lot->fabric_source === 'market_purchase' || ! $lot->knittingJob) {
+            return [];
+        }
+
         $used = $this->consumed($lot, $exceptJobId);
 
         return $lot->knittingJob->diaRows->map(fn ($row): array => ['dia' => $row->dia, 'output_kg' => $row->output_fabric_kg, 'consumed_kg' => D::scale($used[$row->dia] ?? '0'), 'available_kg' => D::scale(D::of($row->output_fabric_kg)->minus($used[$row->dia] ?? '0'))])->all();

@@ -17,7 +17,7 @@ final class CompanyService
                 ($company->is_dyeing && empty($data['is_dyeing']) && $company->dyeingJobs()->withTrashed()->exists()))) {
                 throw ValidationException::withMessages(['company' => 'A company type used by a job cannot be removed.']);
             }
-            $company->fill(collect($data)->only(['name', 'address', 'is_knitting', 'is_dyeing', 'is_active', 'notes'])->all());
+            $company->fill(collect($data)->only(['name', 'address', 'is_knitting', 'is_dyeing', 'is_active', 'default_knitting_rate_per_kg', 'default_dyeing_rate_per_kg', 'notes'])->all());
             $company->name_key = mb_strtolower(trim($data['name']));
             $company->save();
             foreach (['manager', 'operator', 'dyeing_master'] as $role) {

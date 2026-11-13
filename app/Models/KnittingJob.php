@@ -10,7 +10,11 @@ class KnittingJob extends AuditedModel
 {
     protected function casts(): array
     {
-        return ['entry_date' => 'date', 'delivery_date' => 'date'];
+        return [
+            'entry_date' => 'date',
+            'delivery_date' => 'date',
+            'rate_per_kg' => 'decimal:6',
+        ];
     }
 
     public function lot(): BelongsTo

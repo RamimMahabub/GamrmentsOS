@@ -6,6 +6,7 @@ use App\Models\Lot;
 use App\Modules\Dyeing\DyedFabricBalance;
 use App\Modules\Dyeing\FabricAvailability;
 use App\Support\JobTotals;
+use App\Support\LotCostCalculator;
 use Illuminate\View\View;
 
 class LotController extends Controller
@@ -28,6 +29,7 @@ class LotController extends Controller
             'sewingRows.job.staff',
             'sewingRows.sourceBodyRow',
             'sewingRows.sourceNeckRow',
+            'packingRows.job.staff',
         ]);
 
         $allLots = Lot::orderBy('lot_number')->get(['id', 'lot_number', 'current_stage']);
@@ -38,6 +40,8 @@ class LotController extends Controller
             'fabric' => $fabric->forLot($lot),
             'dyed' => $dyed->forLot($lot),
             'pipeline' => JobTotals::pipeline($lot),
+            'costSummary' => LotCostCalculator::forLot($lot),
+            'costSummary' => LotCostCalculator::forLot($lot),
         ]);
     }
 }

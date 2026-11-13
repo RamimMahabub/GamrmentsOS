@@ -15,7 +15,12 @@ class CompanyRequest extends ManufacturingRequest
                 $fail('A company with this name already exists.');
             }
         }], 'address' => ['required', 'string', 'max:5000'], 'is_knitting' => ['required', 'boolean'], 'is_dyeing' => ['required', 'boolean'],
-            'is_active' => ['sometimes', 'boolean'], 'notes' => ['nullable', 'string', 'max:10000'], 'contacts' => ['required', 'array']];
+            'is_active' => ['sometimes', 'boolean'],
+            'default_knitting_rate_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'default_dyeing_rate_per_kg' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:10000'],
+            'contacts' => ['required', 'array'],
+        ];
         foreach (['manager', 'operator', 'dyeing_master'] as $role) {
             $required = $role === 'dyeing_master' ? $this->boolean('is_dyeing') : $this->boolean('is_knitting');
             $rules['contacts.'.$role.'.name'] = [Rule::requiredIf($required), 'nullable', 'string', 'max:255'];
