@@ -207,26 +207,31 @@ final class LotCostCalculator
         if ($lot->isUnderpants()) {
             $underpantsSteps = [];
             foreach (UnderpantsSewingConfig::allSubSteps() as $s) {
-                $underpantsSteps[$s['key']] = $s['label'];
+                $underpantsSteps[$s['key']] = [
+                    'label' => $s['label'],
+                    'rate' => $s['rate'] ?? '0',
+                ];
             }
-            $underpantsSteps['qc_phase_1'] = 'QC Phase 1';
-            $underpantsSteps['iron'] = 'Iron';
-            $underpantsSteps['qc_phase_2'] = 'QC Phase 2';
+            $underpantsSteps['qc_phase_1'] = ['label' => 'QC Phase 1', 'rate' => $sewingRates['qc_phase_1'] ?? '0'];
+            $underpantsSteps['iron'] = ['label' => 'Iron', 'rate' => $sewingRates['iron'] ?? '0'];
+            $underpantsSteps['qc_phase_2'] = ['label' => 'QC Phase 2', 'rate' => $sewingRates['qc_phase_2'] ?? '0'];
             $sewingSteps = $underpantsSteps;
         } else {
             $sewingSteps = [
-                'fold' => 'Fold',
-                'lock' => 'Lock',
-                'down' => 'Down',
-                'neck_join' => 'Neck Join',
-                'neck_finishing' => 'Neck Finishing',
-                'qc_phase_1' => 'QC Phase 1',
-                'iron' => 'Iron',
-                'qc_phase_2' => 'QC Phase 2',
+                'fold' => ['label' => 'Fold', 'rate' => $sewingRates['fold'] ?? '0'],
+                'lock' => ['label' => 'Lock', 'rate' => $sewingRates['lock'] ?? '0'],
+                'down' => ['label' => 'Down', 'rate' => $sewingRates['down'] ?? '0'],
+                'neck_join' => ['label' => 'Neck Join', 'rate' => $sewingRates['neck_join'] ?? '0'],
+                'neck_finishing' => ['label' => 'Neck Finishing', 'rate' => $sewingRates['neck_finishing'] ?? '0'],
+                'qc_phase_1' => ['label' => 'QC Phase 1', 'rate' => $sewingRates['qc_phase_1'] ?? '0'],
+                'iron' => ['label' => 'Iron', 'rate' => $sewingRates['iron'] ?? '0'],
+                'qc_phase_2' => ['label' => 'QC Phase 2', 'rate' => $sewingRates['qc_phase_2'] ?? '0'],
             ];
         }
 
-        foreach ($sewingSteps as $stepKey => $stepLabel) {
+        foreach ($sewingSteps as $stepKey => $stepMeta) {
+            $stepLabel = $stepMeta['label'];
+            $defaultRate = $stepMeta['rate'] ?? '0';
             $colDozens = $stepKey.'_dozens';
             $colPieces = $stepKey.'_pieces';
 
@@ -252,7 +257,7 @@ final class LotCostCalculator
 
             $dozens = CuttingQuantity::dozens($totalPieces);
             $jobRate = $sewingRows->first(fn ($r) => $r->job?->current_step === $stepKey)?->job?->rate_per_dozen;
-            $rate = $jobRate ?: ($sewingRates[$stepKey] ?? '0');
+            $rate = $jobRate ?: ($sewingRates[$stepKey] ?? $defaultRate);
 
             if (! $rate || Decimal::of($rate)->isZero()) {
                 $missingRates[] = $stepLabel.' sewing rate per dozen';
@@ -542,7 +547,8 @@ final class LotCostCalculator
     private static function buildColorDiaBreakdown(Lot $lot, string $totalLotCost, string $totalFinishedDozens): array
     {
         $breakdown = [];
-        $cuttingRows = $lot->cuttingRows->where('cutting_type', 'body');
+        $cuttingType = $lot->isUnderpants() ? 'cutting' : 'body';
+        $cuttingRows = $lot->cuttingRows->where('cutting_type', $cuttingType);
         $packingRows = $lot->packingRows;
 
         $groups = $cuttingRows->groupBy(fn ($r) => $r->color.'|'.$r->dia);

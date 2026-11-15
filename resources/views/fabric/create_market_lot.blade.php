@@ -27,7 +27,7 @@
         diaCount: 4,
         dias: [32, 34, 36, 38],
         blocks: [],
-        
+
         get activeLotNumber() {
             if (this.customLotNumber.trim()) return this.customLotNumber;
             return this.productType === 'boxer' ? this.previewBoxer : this.previewUnderwear;
@@ -38,7 +38,6 @@
         },
 
         buildStructure() {
-            // Ensure dias array matches diaCount
             let currentDias = [...this.dias];
             while (currentDias.length < this.diaCount) {
                 let last = currentDias.length ? currentDias[currentDias.length - 1] : 30;
@@ -49,7 +48,6 @@
             }
             this.dias = currentDias;
 
-            // Ensure blocks array matches colorCount
             let newBlocks = [];
             for (let i = 0; i < this.colorCount; i++) {
                 let existingBlock = this.blocks[i];
@@ -440,5 +438,3 @@
         </div>
     </form>
 </x-app-layout>
-
-

@@ -30,11 +30,35 @@ class CuttingJobController extends Controller
 
     public function index(Request $request): View
     {
-        $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'], 'staff_id' => ['nullable', 'integer'], 'lot_id' => ['nullable', 'integer'], 'color' => ['nullable', 'string', 'max:255']]);
+        $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'], 'staff_id' => ['nullable', 'integer'], 'lot_id' => ['nullable', 'integer'], 'color' => ['nullable', 'string', 'max:255'], 'product' => ['nullable', 'string', 'in:sando,underpants']]);
         $type = $this->type($request);
-        $jobs = CuttingJob::with(['staff', 'rows.lot', 'rows.sourceBodyRow', 'rows.roll.dyeingRow.colorBlock.color'])->where('cutting_type', $type)->when($request->from, fn ($q) => $q->whereDate('cutting_date', '>=', $request->from))->when($request->to, fn ($q) => $q->whereDate('cutting_date', '<=', $request->to))->when($request->staff_id, fn ($q) => $q->where('staff_id', $request->staff_id))->when($request->lot_id || $request->color, fn ($q) => $q->whereHas('rows', fn ($q) => $q->when($request->lot_id, fn ($q) => $q->where('lot_id', $request->lot_id))->when($request->color, fn ($q) => $q->where('color', $request->color))))->orderByDesc('cutting_date')->orderByDesc('id')->paginate(25)->withQueryString();
+        $product = $request->query('product');
+        if ($type === 'cutting') {
+            $product = 'underpants';
+        } elseif ($type === 'body' || $type === 'neck') {
+            $product = 'sando';
+        } elseif ($type === 'rib') {
+            $product = $product === 'underpants' ? 'underpants' : 'sando';
+        }
 
-        return view('cutting.index', ['jobs' => $jobs, 'type' => $type, 'staffs' => Staff::orderBy('name')->get(), 'lots' => Lot::orderByDesc('id')->get(), 'colors' => Color::orderBy('name')->pluck('name')]);
+        $jobsQuery = CuttingJob::with(['staff', 'rows.lot', 'rows.sourceBodyRow', 'rows.roll.dyeingRow.colorBlock.color'])->where('cutting_type', $type);
+
+        if ($product === 'underpants') {
+            $jobsQuery->whereHas('rows.lot', fn ($q) => $q->whereIn('product_type', ['boxer', 'underwear']));
+        } elseif ($product === 'sando') {
+            $jobsQuery->whereHas('rows.lot', fn ($q) => $q->where('product_type', 'sando'));
+        }
+
+        $jobs = $jobsQuery->when($request->from, fn ($q) => $q->whereDate('cutting_date', '>=', $request->from))->when($request->to, fn ($q) => $q->whereDate('cutting_date', '<=', $request->to))->when($request->staff_id, fn ($q) => $q->where('staff_id', $request->staff_id))->when($request->lot_id || $request->color, fn ($q) => $q->whereHas('rows', fn ($q) => $q->when($request->lot_id, fn ($q) => $q->where('lot_id', $request->lot_id))->when($request->color, fn ($q) => $q->where('color', $request->color))))->orderByDesc('cutting_date')->orderByDesc('id')->paginate(25)->withQueryString();
+
+        $lotsQuery = Lot::query();
+        if ($product === 'underpants') {
+            $lotsQuery->whereIn('product_type', ['boxer', 'underwear']);
+        } elseif ($product === 'sando') {
+            $lotsQuery->where('product_type', 'sando');
+        }
+
+        return view('cutting.index', ['jobs' => $jobs, 'type' => $type, 'product' => $product, 'staffs' => Staff::orderBy('name')->get(), 'lots' => $lotsQuery->orderByDesc('id')->get(), 'colors' => Color::orderBy('name')->pluck('name')]);
     }
 
     public function create(Request $request): View
@@ -52,6 +76,17 @@ class CuttingJobController extends Controller
     private function form(Request $request, CuttingJob $job): View
     {
         $type = $this->type($request);
+        $product = $request->query('product');
+        if ($type === 'cutting') {
+            $product = 'underpants';
+        } elseif ($type === 'body' || $type === 'neck') {
+            $product = 'sando';
+        } elseif ($job->exists && $job->rows->isNotEmpty()) {
+            $product = $job->rows->first()->lot?->isUnderpants() ? 'underpants' : 'sando';
+        } elseif (! $product && $type === 'rib') {
+            $product = 'sando';
+        }
+
         $available = $type === 'neck' ? collect() : ReturnedRoll::with([
             'dyeingJob.lot',
             'dyeingRow.colorBlock.color',
@@ -60,16 +95,25 @@ class CuttingJobController extends Controller
             'cuttingRows' => fn ($query) => $query->whereIn('cutting_type', ['body', 'cutting', 'rib'])->when($job->exists, fn ($query) => $query->where('cutting_job_id', '!=', $job->id)),
         ])->where('is_available', true)->where(function ($q): void {
             $q->whereHas('dyeingJob')->orWhereNotNull('lot_id');
-        })->orderBy('number')->get()->map(function ($roll) use ($type): ?array {
+        })->orderBy('number')->get()->map(function ($roll) use ($type, $product): ?array {
             $effectiveLot = $roll->getEffectiveLot();
             if ($effectiveLot) {
                 // If cutting type is 'cutting', only show underpants lots
-                if ($type === 'cutting' && $effectiveLot->product_type === 'sando') {
+                if ($type === 'cutting' && ! $effectiveLot->isUnderpants()) {
                     return null;
                 }
                 // If cutting type is 'body', only show sando lots
-                if ($type === 'body' && $effectiveLot->product_type !== 'sando') {
+                if ($type === 'body' && $effectiveLot->isUnderpants()) {
                     return null;
+                }
+                // If cutting type is 'rib', strictly separate Sando vs Underpants
+                if ($type === 'rib') {
+                    if ($product === 'underpants' && ! $effectiveLot->isUnderpants()) {
+                        return null;
+                    }
+                    if ($product === 'sando' && $effectiveLot->isUnderpants()) {
+                        return null;
+                    }
                 }
             }
 
@@ -117,7 +161,7 @@ class CuttingJobController extends Controller
             })->all();
         }
 
-        return view('cutting.form', ['job' => $job, 'type' => $type, 'staffs' => Staff::where('is_active', true)->orderBy('name')->get(), 'form' => ['isNeck' => $type === 'neck', 'canRecordResults' => $job->exists, 'available' => $available, 'rows' => array_values($rows), 'labels' => config('cutting.labels')]]);
+        return view('cutting.form', ['job' => $job, 'type' => $type, 'product' => $product, 'staffs' => Staff::where('is_active', true)->orderBy('name')->get(), 'form' => ['isNeck' => $type === 'neck', 'canRecordResults' => $job->exists, 'available' => $available, 'rows' => array_values($rows), 'labels' => config('cutting.labels')]]);
     }
 
     public function store(CuttingRequest $request, CuttingService $service): RedirectResponse
@@ -146,8 +190,10 @@ class CuttingJobController extends Controller
     public function destroy(Request $request, CuttingJob $cuttingJob, CuttingService $service): RedirectResponse
     {
         $this->check($request, $cuttingJob);
+        $type = $this->type($request);
+        $product = $cuttingJob->rows->first()?->lot?->isUnderpants() ? 'underpants' : 'sando';
         $service->delete($cuttingJob);
 
-        return to_route('cutting.'.$this->type($request).'.index')->with('status', $this->type($request) === 'neck' ? 'Cutting job deleted. Body batches released for neck cutting.' : 'Cutting job deleted. Returned rolls released for body or rib cutting.');
+        return to_route('cutting.'.$type.'.index', $type === 'rib' && $product === 'underpants' ? ['product' => 'underpants'] : [])->with('status', $type === 'neck' ? 'Cutting job deleted. Body batches released for neck cutting.' : 'Cutting job deleted. Returned rolls released for body or rib cutting.');
     }
 }

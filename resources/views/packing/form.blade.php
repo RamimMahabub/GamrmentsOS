@@ -46,7 +46,7 @@
             </div>
 
             <!-- Native GarmentsOS Live Overview KPIs -->
-            <div class="sewing-overview-kpis grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-[#f8f8fa] border-b border-line">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-[#f8f8fa] border-b border-line">
                 <div class="sewing-overview-kpi sewing-overview-kpi-primary">
                     <span>Total to Pack</span>
                     <strong x-text="totalPackedPieces.toLocaleString() + ' pcs'">0 pcs</strong>
@@ -119,7 +119,7 @@
                             <span class="sewing-color-count" x-text="group.rows.length + ' batches'"></span>
                         </div>
                         <div class="table-wrap">
-                            <table class="data-table packing-stage-table sewing-stage-table">
+                            <table class="data-table packing-stage-table">
                                 <thead>
                                     <tr>
                                         <th class="sewing-select-column" style="width: 3.5rem; text-align: center;">

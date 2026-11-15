@@ -21,8 +21,12 @@ final class Decimal
         return str_replace(',', '', $value);
     }
 
-    public static function of(string|int $value): BigDecimal
+    public static function of(string|int|null $value): BigDecimal
     {
+        if ($value === null || $value === '') {
+            return BigDecimal::zero();
+        }
+
         return BigDecimal::of($value);
     }
 

@@ -3,7 +3,6 @@
 return [
     ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'icon' => 'grid'],
     ['label' => 'Yarn Inventory', 'route' => 'yarns.index', 'active' => 'yarns.*', 'icon' => 'spool'],
-    ['label' => 'Companies', 'route' => 'companies.index', 'active' => 'companies.*', 'icon' => 'building'],
     ['label' => 'Knitting', 'route' => 'knitting-jobs.index', 'active' => 'knitting-jobs.*', 'icon' => 'layers'],
     ['label' => 'Dyeing', 'route' => 'dyeing-jobs.index', 'active' => 'dyeing-jobs.*', 'icon' => 'drop'],
     ['label' => 'Fabric & Rolls', 'route' => 'fabric.index', 'active' => 'fabric.*', 'icon' => 'roll'],
@@ -12,5 +11,6 @@ return [
     ['label' => 'Packing', 'route' => 'packing-jobs.index', 'active' => 'packing*', 'icon' => 'package'],
     ['label' => 'Staffs', 'route' => 'staffs.index', 'active' => 'staffs.*', 'icon' => 'users'],
     ['label' => 'Expenses', 'route' => 'expenses.index', 'active' => 'expenses.*', 'icon' => 'receipt'],
+    ['label' => 'Companies', 'route' => 'companies.index', 'active' => 'companies.*', 'icon' => 'building'],
     ['label' => 'Settings', 'route' => 'settings.edit', 'active' => 'settings.*', 'icon' => 'settings'],
 ];

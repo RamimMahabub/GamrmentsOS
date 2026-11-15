@@ -198,7 +198,13 @@
                     <tr>
                         <td>
                             <strong class="text-ink">4. Factory Labor · Cutting</strong>
-                            <span class="hint block text-[11px]">Body, Neck &amp; Rib cutting steps</span>
+                            <span class="hint block text-[11px]">
+                                @if($lot->isUnderpants())
+                                    Underpants Cutting {{ $lot->has_rib ? '& Rib' : '' }} steps
+                                @else
+                                    Body, Neck &amp; Rib cutting steps
+                                @endif
+                            </span>
                         </td>
                         <td>
                             @foreach($cut['details'] as $c)
@@ -221,7 +227,13 @@
                     <tr>
                         <td>
                             <strong class="text-ink">5. Factory Labor · Sewing Stations</strong>
-                            <span class="hint block text-[11px]">8 stations: Fold, Lock, Down, Neck Join/Finishing, QC 1, Iron, QC 2</span>
+                            <span class="hint block text-[11px]">
+                                @if($lot->isUnderpants())
+                                    Underpants stations: Over Lock, Lock, Elastic Join, QC 1, Iron, QC 2
+                                @else
+                                    8 stations: Fold, Lock, Down, Neck Join/Finishing, QC 1, Iron, QC 2
+                                @endif
+                            </span>
                         </td>
                         <td>
                             {{ count($sew['details']) }} station operations recorded

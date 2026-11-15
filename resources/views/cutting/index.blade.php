@@ -5,7 +5,17 @@
                 <span class="h-2 w-2 rounded-full bg-accent animate-pulse"></span>
                 Precision Garment Cutting Execution
             </div>
-            <h1 class="text-3xl font-bold tracking-tight text-ink">Cutting ({{ ucfirst($type) }})</h1>
+            <h1 class="text-3xl font-bold tracking-tight text-ink">
+                @if($type === 'rib' && ($product ?? '') === 'underpants')
+                    Underpants Rib Cutting
+                @elseif($type === 'rib')
+                    Sando Rib Cutting
+                @elseif($type === 'cutting')
+                    Underpants Cutting
+                @else
+                    Cutting ({{ ucfirst($type) }})
+                @endif
+            </h1>
             <p class="text-sm text-muted mt-1">Transform returned fabric rolls into precision body panels, necks, and rib batches.</p>
         </div>
     </x-slot>
@@ -18,18 +28,39 @@
         <!-- Executions Header below steps icons -->
         <div class="px-6 py-4 border-b border-line/70 flex flex-wrap items-center justify-between gap-4 bg-surface">
             <div>
-                <h2 class="text-base font-bold text-ink">{{ ucfirst($type) }} Cutting Executions</h2>
-                <p class="text-xs text-muted">Browse and filter recorded {{ $type }} cut jobs.</p>
+                <h2 class="text-base font-bold text-ink">
+                    @if($type === 'rib' && ($product ?? '') === 'underpants')
+                        Underpants Rib Cutting Executions
+                    @elseif($type === 'rib')
+                        Sando Rib Cutting Executions
+                    @elseif($type === 'cutting')
+                        Underpants Cutting Executions
+                    @else
+                        {{ ucfirst($type) }} Cutting Executions
+                    @endif
+                </h2>
+                <p class="text-xs text-muted">
+                    @if($type === 'rib' && ($product ?? '') === 'underpants')
+                        Browse and filter recorded rib cut jobs for Boxer &amp; Underwear lots.
+                    @elseif($type === 'rib')
+                        Browse and filter recorded rib cut jobs for Sando lots.
+                    @else
+                        Browse and filter recorded {{ $type }} cut jobs.
+                    @endif
+                </p>
             </div>
-            <a class="btn btn-primary shadow-sm shadow-accent/25 text-xs" href="{{ route('cutting.'.$type.'.create') }}">
+            <a class="btn btn-primary shadow-sm shadow-accent/25 text-xs" href="{{ route('cutting.'.$type.'.create', ($type === 'rib' && ($product ?? '') === 'underpants') ? ['product' => 'underpants'] : []) }}">
                 <x-icon name="plus" class="h-3.5 w-3.5"/>
-                Add {{ ucfirst($type) }} Cutting Job
+                Add {{ ($type === 'rib' && ($product ?? '') === 'underpants') ? 'Underpants Rib' : ucfirst($type) }} Cutting Job
             </a>
         </div>
 
         <!-- Advanced Filter Toolbar -->
         <div class="px-6 py-5 border-b border-line/70 bg-gradient-to-r from-surface via-raised/40 to-surface">
             <form class="flex flex-wrap items-center gap-3" method="GET">
+                @if(request('product'))
+                    <input type="hidden" name="product" value="{{ request('product') }}">
+                @endif
                 <div class="flex items-center gap-2">
                     <div class="relative">
                         <label class="sr-only" for="from-date">From Date</label>

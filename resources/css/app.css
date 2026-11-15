@@ -207,13 +207,14 @@
     .sewing-compact-quantity b { padding-bottom: .6rem; color: #9b9da7; font-size: .8rem; }
     .sewing-compact-quantity .sewing-stage-quantity-input { max-width: 5.2rem !important; }
     .sewing-stage-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; margin: 0 auto; display: block; }
-    .packing-stage-table { min-width: 820px; table-layout: fixed; }
+    .packing-stage-table { min-width: 960px; table-layout: fixed; }
+    .packing-stage-table td, .packing-stage-table th { padding: .8rem .75rem; }
     .packing-stage-table th:nth-child(1), .packing-stage-table td:nth-child(1) { width: 3.5rem; text-align: center; }
-    .packing-stage-table th:nth-child(2), .packing-stage-table td:nth-child(2) { width: 15%; }
-    .packing-stage-table th:nth-child(3), .packing-stage-table td:nth-child(3) { width: 10%; }
-    .packing-stage-table th:nth-child(4), .packing-stage-table td:nth-child(4) { width: 10%; text-align: center; }
-    .packing-stage-table th:nth-child(5), .packing-stage-table td:nth-child(5) { width: 16%; }
-    .packing-stage-table th:nth-child(6), .packing-stage-table td:nth-child(6) { width: 25%; }
+    .packing-stage-table th:nth-child(2), .packing-stage-table td:nth-child(2) { width: 13%; }
+    .packing-stage-table th:nth-child(3), .packing-stage-table td:nth-child(3) { width: 9%; }
+    .packing-stage-table th:nth-child(4), .packing-stage-table td:nth-child(4) { width: 9%; text-align: center; }
+    .packing-stage-table th:nth-child(5), .packing-stage-table td:nth-child(5) { width: 15%; }
+    .packing-stage-table th:nth-child(6), .packing-stage-table td:nth-child(6) { width: 30%; }
     .packing-stage-table th:nth-child(7), .packing-stage-table td:nth-child(7) { width: 12%; }
     .packing-stage-table th:nth-child(8), .packing-stage-table td:nth-child(8) { width: 12%; }
     .packing-stage-table .sewing-row-checkbox { height: 1.15rem; width: 1.15rem; min-width: 1.15rem; max-width: 1.15rem; margin: 0 auto; display: block; }

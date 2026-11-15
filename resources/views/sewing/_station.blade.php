@@ -203,7 +203,14 @@
                     @forelse($stationJobs as $stationJob)
                         @if(in_array($step, ['qc_phase_1', 'qc_phase_2'], true))
                             @php
-                                $passedPieces = \App\Support\Decimal::sum($stationJob->rows->map(fn ($row): string => (string) \App\Support\Decimal::of($row->{$step.'_dozens'})->multipliedBy(12)->plus($row->{$step.'_pieces'})));
+                                $passedPieces = \App\Support\Decimal::sum($stationJob->rows->map(function ($row) use ($step): string {
+                                    if (isset($row->stage_data['total_pieces']) && ($row->stage_data['step'] ?? null) === $step) {
+                                        return (string) $row->stage_data['total_pieces'];
+                                    }
+                                    $dozens = $row->{$step.'_dozens'} ?? $row->stage_data['dozens'] ?? 0;
+                                    $pieces = $row->{$step.'_pieces'} ?? $row->stage_data['pieces'] ?? 0;
+                                    return (string) \App\Support\Decimal::of($dozens)->multipliedBy(12)->plus($pieces);
+                                }));
                                 $altered = (int) $stationJob->rows->sum("{$step}_altered_pieces");
                                 $rejected = (int) $stationJob->rows->sum("{$step}_rejected_pieces");
                             @endphp
@@ -226,7 +233,14 @@
                             </tr>
                         @elseif($step === 'iron')
                             @php
-                                $ironedPieces = \App\Support\Decimal::sum($stationJob->rows->map(fn ($row): string => (string) \App\Support\Decimal::of($row->iron_dozens)->multipliedBy(12)->plus($row->iron_pieces)));
+                                $ironedPieces = \App\Support\Decimal::sum($stationJob->rows->map(function ($row): string {
+                                    if (isset($row->stage_data['total_pieces']) && ($row->stage_data['step'] ?? null) === 'iron') {
+                                        return (string) $row->stage_data['total_pieces'];
+                                    }
+                                    $dozens = $row->iron_dozens ?? $row->stage_data['dozens'] ?? 0;
+                                    $pieces = $row->iron_pieces ?? $row->stage_data['pieces'] ?? 0;
+                                    return (string) \App\Support\Decimal::of($dozens)->multipliedBy(12)->plus($pieces);
+                                }));
                             @endphp
                             <tr>
                                 <td>{{ $stationJob->sewing_date->format('d M Y') }}</td>
@@ -245,7 +259,17 @@
                             </tr>
                         @else
                             @php
-                                $completedPieces = \App\Support\Decimal::sum($stationJob->rows->map(fn ($row): string => (string) \App\Support\Decimal::of($row->{$step.'_dozens'})->multipliedBy(12)->plus($row->{$step.'_pieces'})));
+                                $completedPieces = \App\Support\Decimal::sum($stationJob->rows->map(function ($row) use ($step): string {
+                                    if (isset($row->stage_data['total_pieces']) && ($row->stage_data['step'] ?? null) === $step) {
+                                        return (string) $row->stage_data['total_pieces'];
+                                    }
+                                    if (isset($row->stage_data['dozens']) && ($row->stage_data['step'] ?? null) === $step) {
+                                        return (string) \App\Support\Decimal::of($row->stage_data['dozens'])->multipliedBy(12)->plus($row->stage_data['pieces'] ?? 0);
+                                    }
+                                    $dozens = $row->{$step.'_dozens'} ?? $row->stage_data['dozens'] ?? 0;
+                                    $pieces = $row->{$step.'_pieces'} ?? $row->stage_data['pieces'] ?? 0;
+                                    return (string) \App\Support\Decimal::of($dozens)->multipliedBy(12)->plus($pieces);
+                                }));
                             @endphp
                             <tr>
                                 <td>{{ $stationJob->sewing_date->format('d M Y') }}</td>

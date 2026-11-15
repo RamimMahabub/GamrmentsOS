@@ -8,6 +8,7 @@ use App\Models\Lot;
 use App\Models\ReturnedRoll;
 use App\Models\Staff;
 use App\Models\User;
+use App\Support\CuttingService;
 use App\Support\LotCostCalculator;
 use App\Support\PackingService;
 use App\Support\SewingService;
@@ -407,15 +408,127 @@ class UnderpantsWorkflowTest extends TestCase
         $this->assertArrayHasKey('cutting', $cost['components']);
         $this->assertArrayHasKey('sewing', $cost['components']);
         $this->assertGreaterThan(0, (float) $cost['total_cost']);
+        $this->assertNotEmpty($cost['color_dia_breakdown']);
+        $this->assertEquals('Black', $cost['color_dia_breakdown'][0]['color']);
+        $this->assertEquals(32, $cost['color_dia_breakdown'][0]['dia']);
 
         // 12. Check lots.show and lots.cost-sheet views render cleanly
         $showResponse = $this->actingAs($this->user)->get(route('lots.show', $lot));
         $showResponse->assertOk()
             ->assertSee('Market Ready Rolls')
+            ->assertSee('Cost Per Finished Dozen')
+            ->assertSee('View Full Cost Sheet')
             ->assertSee('Underpants cutting step');
 
         $costSheetResponse = $this->actingAs($this->user)->get(route('lots.cost-sheet', $lot));
         $costSheetResponse->assertOk()
-            ->assertSee('Market Fabric · Ready Rolls');
+            ->assertSee('Market Fabric · Ready Rolls')
+            ->assertSee('Color &amp; DIA Yield &middot; Cost Matrix', false);
+    }
+
+    public function test_underpants_rib_cutting_is_strictly_separated_from_sando_rib_cutting(): void
+    {
+        // 1. Create Sando Lot with rib roll
+        $sandoLot = Lot::create([
+            'lot_number' => 'SU-RIB-TEST',
+            'lot_date' => now()->toDateString(),
+            'current_stage' => 'cutting',
+            'product_type' => 'sando',
+            'fabric_source' => 'market_purchase',
+        ]);
+        $sandoRoll = ReturnedRoll::create([
+            'lot_id' => $sandoLot->id,
+            'color_id' => $this->color->id,
+            'dia' => 32,
+            'number' => 'SANDO-RIB-01',
+            'number_key' => 'sando-rib-01',
+            'weight' => '15.000',
+            'unit' => 'kg',
+            'weight_kg' => '15.000',
+            'is_available' => true,
+        ]);
+
+        // 2. Create Underpants Lot with rib roll
+        $underpantsLot = Lot::create([
+            'lot_number' => 'UW-RIB-TEST',
+            'lot_date' => now()->toDateString(),
+            'current_stage' => 'cutting',
+            'product_type' => 'underwear',
+            'fabric_source' => 'market_purchase',
+            'has_rib' => true,
+        ]);
+        $underpantsRoll = ReturnedRoll::create([
+            'lot_id' => $underpantsLot->id,
+            'color_id' => $this->color->id,
+            'dia' => 34,
+            'number' => 'UNDER-RIB-01',
+            'number_key' => 'under-rib-01',
+            'weight' => '12.000',
+            'unit' => 'kg',
+            'weight_kg' => '12.000',
+            'is_available' => true,
+        ]);
+        $underpantsRoll2 = ReturnedRoll::create([
+            'lot_id' => $underpantsLot->id,
+            'color_id' => $this->color->id,
+            'dia' => 34,
+            'number' => 'UNDER-RIB-02',
+            'number_key' => 'under-rib-02',
+            'weight' => '10.000',
+            'unit' => 'kg',
+            'weight_kg' => '10.000',
+            'is_available' => true,
+        ]);
+
+        // 3. Cut Sando Rib
+        $cuttingService = app(CuttingService::class);
+        $sandoRibJob = $cuttingService->save([
+            'cutting_date' => now()->toDateString(),
+            'staff_id' => $this->staff->id,
+            'rows' => [
+                [
+                    'roll_id' => $sandoRoll->id,
+                    'roll_weight_kg' => '15.000',
+                    'dozens' => '10.000',
+                    'weight_per_dozen' => '1.500000',
+                    'weight_unit' => 'kg',
+                ],
+            ],
+        ], 'rib');
+
+        // 4. Cut Underpants Rib
+        $underpantsRibJob = $cuttingService->save([
+            'cutting_date' => now()->toDateString(),
+            'staff_id' => $this->staff->id,
+            'rows' => [
+                [
+                    'roll_id' => $underpantsRoll->id,
+                    'roll_weight_kg' => '12.000',
+                    'dozens' => '8.000',
+                    'weight_per_dozen' => '1.500000',
+                    'weight_unit' => 'kg',
+                ],
+            ],
+        ], 'rib');
+
+        // 5. Test Rib index with product=underpants
+        $underResponse = $this->actingAs($this->user)->get(route('cutting.rib.index', ['product' => 'underpants']));
+        $underResponse->assertOk()
+            ->assertSee('Underpants Rib Cutting')
+            ->assertSee('UW-RIB-TEST')
+            ->assertDontSee('SU-RIB-TEST');
+
+        // 6. Test Rib index with product=sando (or default)
+        $sandoResponse = $this->actingAs($this->user)->get(route('cutting.rib.index', ['product' => 'sando']));
+        $sandoResponse->assertOk()
+            ->assertSee('Sando Rib Cutting')
+            ->assertSee('SU-RIB-TEST')
+            ->assertDontSee('UW-RIB-TEST');
+
+        // 7. Test Rib create form with product=underpants
+        $underForm = $this->actingAs($this->user)->get(route('cutting.rib.create', ['product' => 'underpants']));
+        $underForm->assertOk()
+            ->assertSee('Underpants Rib Cutting')
+            ->assertViewHas('form', fn (array $form): bool => $form['available']->contains('number', 'UNDER-RIB-02') && ! $form['available']->contains('number', 'SANDO-RIB-01'));
     }
 }

@@ -8,20 +8,20 @@ class UnderpantsSewingConfig
 {
     public const DEFAULT_STEPS = [
         'over_lock' => [
-            ['key' => 'ol_crotch', 'label' => 'Crotch Overlock'],
-            ['key' => 'ol_side', 'label' => 'Side Overlock'],
+            ['key' => 'ol_crotch', 'label' => 'Crotch Overlock', 'rate' => '10.00'],
+            ['key' => 'ol_side', 'label' => 'Side Overlock', 'rate' => '10.00'],
         ],
         'lock' => [
-            ['key' => 'lk_front', 'label' => 'Front Lock'],
-            ['key' => 'lk_hem', 'label' => 'Bottom Hem Lock'],
+            ['key' => 'lk_front', 'label' => 'Front Lock', 'rate' => '10.00'],
+            ['key' => 'lk_hem', 'label' => 'Bottom Hem Lock', 'rate' => '10.00'],
         ],
         'elastic_join' => [
-            ['key' => 'el_waist', 'label' => 'Waist Elastic Join'],
+            ['key' => 'el_waist', 'label' => 'Waist Elastic Join', 'rate' => '12.00'],
         ],
     ];
 
     /**
-     * @return array<string, array<int, array{key: string, label: string}>>
+     * @return array<string, array<int, array{key: string, label: string, rate?: string}>>
      */
     public static function getGroups(): array
     {
@@ -31,7 +31,7 @@ class UnderpantsSewingConfig
     /**
      * Return flattened ordered list of all underpants sub-steps.
      *
-     * @return array<int, array{group: string, key: string, label: string}>
+     * @return array<int, array{group: string, key: string, label: string, rate?: string}>
      */
     public static function allSubSteps(): array
     {
@@ -45,6 +45,7 @@ class UnderpantsSewingConfig
                     'group' => $groupKey,
                     'key' => $item['key'],
                     'label' => $item['label'],
+                    'rate' => (string) ($item['rate'] ?? '0'),
                 ];
             }
         }
@@ -65,14 +66,16 @@ class UnderpantsSewingConfig
                 $label = trim((string) ($item['label'] ?? ''));
                 if ($label !== '') {
                     $key = ! empty($item['key']) ? preg_replace('/[^a-z0-9_]/', '', strtolower($item['key'])) : preg_replace('/[^a-z0-9_]/', '', strtolower($label));
+                    $rate = isset($item['rate']) ? (string) $item['rate'] : '0';
                     $validItems[] = [
                         'key' => $key ?: 'step_'.uniqid(),
                         'label' => $label,
+                        'rate' => $rate,
                     ];
                 }
             }
             if (empty($validItems) && $groupKey === 'elastic_join') {
-                $validItems[] = ['key' => 'el_waist', 'label' => 'Waist Elastic Join'];
+                $validItems[] = ['key' => 'el_waist', 'label' => 'Waist Elastic Join', 'rate' => '12.00'];
             }
             $sanitized[$groupKey] = $validItems;
         }

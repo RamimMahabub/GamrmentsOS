@@ -121,7 +121,11 @@
             addStep(group) {
                 if (!this.groups[group]) this.groups[group] = [];
                 if (this.groups[group].length >= 8) return;
-                this.groups[group].push({ key: group + '_' + (this.groups[group].length + 1), label: 'Sub-step ' + (this.groups[group].length + 1) });
+                this.groups[group].push({
+                    key: group + '_' + (this.groups[group].length + 1),
+                    label: 'Sub-step ' + (this.groups[group].length + 1),
+                    rate: '10.00'
+                });
             },
             removeStep(group, idx) {
                 this.groups[group].splice(idx, 1);
@@ -135,7 +139,7 @@
             <div class="flex items-center justify-between mb-3">
                 <div>
                     <h3 class="text-sm font-semibold text-ink">Underpants (Boxer &amp; Underwear) Sewing Stations &amp; Sub-steps</h3>
-                    <p class="text-xs text-muted">Configure 1 to 8 customizable sub-steps for Over Lock, Lock, and Elastic Join.</p>
+                    <p class="text-xs text-muted">Configure 1 to 8 customizable sub-steps and labor rate per dozen for Over Lock, Lock, and Elastic Join.</p>
                 </div>
             </div>
 
@@ -148,15 +152,21 @@
                     </div>
                     <div class="space-y-2 mt-3">
                         <template x-for="(step, idx) in (groups.over_lock || [])" :key="idx">
-                            <div class="flex items-center gap-1.5 bg-surface p-2 rounded-lg border border-line">
-                                <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
-                                <input type="hidden" :name="'underpants_sewing_steps[over_lock]['+idx+'][key]'" :value="step.key">
-                                <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[over_lock]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Crotch Join">
-                                <div class="flex flex-col">
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('over_lock', idx, idx - 1)" :disabled="idx === 0">▲</button>
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('over_lock', idx, idx + 1)" :disabled="idx === groups.over_lock.length - 1">▼</button>
+                            <div class="bg-surface p-2.5 rounded-lg border border-line space-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
+                                    <input type="hidden" :name="'underpants_sewing_steps[over_lock]['+idx+'][key]'" :value="step.key">
+                                    <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[over_lock]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Crotch Join">
+                                    <div class="flex flex-col">
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('over_lock', idx, idx - 1)" :disabled="idx === 0">▲</button>
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('over_lock', idx, idx + 1)" :disabled="idx === groups.over_lock.length - 1">▼</button>
+                                    </div>
+                                    <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('over_lock', idx)">&times;</button>
                                 </div>
-                                <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('over_lock', idx)">&times;</button>
+                                <div class="flex items-center justify-between gap-2 pl-5 pt-1 border-t border-line/60">
+                                    <span class="text-[11px] text-muted font-medium">Rate / doz ({{ $currency }})</span>
+                                    <input type="number" step="0.01" min="0" class="text-xs py-0.5 px-2 w-24 text-right border border-line rounded" :name="'underpants_sewing_steps[over_lock]['+idx+'][rate]'" x-model="step.rate" placeholder="0.00">
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -170,15 +180,21 @@
                     </div>
                     <div class="space-y-2 mt-3">
                         <template x-for="(step, idx) in (groups.lock || [])" :key="idx">
-                            <div class="flex items-center gap-1.5 bg-surface p-2 rounded-lg border border-line">
-                                <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
-                                <input type="hidden" :name="'underpants_sewing_steps[lock]['+idx+'][key]'" :value="step.key">
-                                <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[lock]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Fly Lock">
-                                <div class="flex flex-col">
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('lock', idx, idx - 1)" :disabled="idx === 0">▲</button>
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('lock', idx, idx + 1)" :disabled="idx === groups.lock.length - 1">▼</button>
+                            <div class="bg-surface p-2.5 rounded-lg border border-line space-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
+                                    <input type="hidden" :name="'underpants_sewing_steps[lock]['+idx+'][key]'" :value="step.key">
+                                    <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[lock]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Fly Lock">
+                                    <div class="flex flex-col">
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('lock', idx, idx - 1)" :disabled="idx === 0">▲</button>
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('lock', idx, idx + 1)" :disabled="idx === groups.lock.length - 1">▼</button>
+                                    </div>
+                                    <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('lock', idx)">&times;</button>
                                 </div>
-                                <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('lock', idx)">&times;</button>
+                                <div class="flex items-center justify-between gap-2 pl-5 pt-1 border-t border-line/60">
+                                    <span class="text-[11px] text-muted font-medium">Rate / doz ({{ $currency }})</span>
+                                    <input type="number" step="0.01" min="0" class="text-xs py-0.5 px-2 w-24 text-right border border-line rounded" :name="'underpants_sewing_steps[lock]['+idx+'][rate]'" x-model="step.rate" placeholder="0.00">
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -192,15 +208,21 @@
                     </div>
                     <div class="space-y-2 mt-3">
                         <template x-for="(step, idx) in (groups.elastic_join || [])" :key="idx">
-                            <div class="flex items-center gap-1.5 bg-surface p-2 rounded-lg border border-line">
-                                <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
-                                <input type="hidden" :name="'underpants_sewing_steps[elastic_join]['+idx+'][key]'" :value="step.key">
-                                <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[elastic_join]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Waistband Elastic">
-                                <div class="flex flex-col">
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('elastic_join', idx, idx - 1)" :disabled="idx === 0">▲</button>
-                                    <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('elastic_join', idx, idx + 1)" :disabled="idx === groups.elastic_join.length - 1">▼</button>
+                            <div class="bg-surface p-2.5 rounded-lg border border-line space-y-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono text-[10px] text-muted w-4" x-text="idx + 1"></span>
+                                    <input type="hidden" :name="'underpants_sewing_steps[elastic_join]['+idx+'][key]'" :value="step.key">
+                                    <input type="text" required class="text-xs py-1 px-2 border border-line rounded flex-1" :name="'underpants_sewing_steps[elastic_join]['+idx+'][label]'" x-model="step.label" placeholder="e.g. Waistband Elastic">
+                                    <div class="flex flex-col">
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('elastic_join', idx, idx - 1)" :disabled="idx === 0">▲</button>
+                                        <button type="button" class="text-[10px] text-muted hover:text-ink leading-none px-1" @click="moveStep('elastic_join', idx, idx + 1)" :disabled="idx === groups.elastic_join.length - 1">▼</button>
+                                    </div>
+                                    <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('elastic_join', idx)">&times;</button>
                                 </div>
-                                <button type="button" class="text-xs text-danger hover:text-red-700 px-1" @click="removeStep('elastic_join', idx)">&times;</button>
+                                <div class="flex items-center justify-between gap-2 pl-5 pt-1 border-t border-line/60">
+                                    <span class="text-[11px] text-muted font-medium">Rate / doz ({{ $currency }})</span>
+                                    <input type="number" step="0.01" min="0" class="text-xs py-0.5 px-2 w-24 text-right border border-line rounded" :name="'underpants_sewing_steps[elastic_join]['+idx+'][rate]'" x-model="step.rate" placeholder="0.00">
+                                </div>
                             </div>
                         </template>
                     </div>
