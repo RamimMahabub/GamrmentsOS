@@ -192,6 +192,7 @@ final class CuttingService
                 $job->rows()->updateOrCreate(['roll_id' => $attributes['roll_id']], $attributes);
             }
             Lot::syncCurrentStageFor($lotIds);
+            Lot::checkAutoDispatch($lotIds);
             ActivityLog::create(['event' => $before ? 'updated' : 'created', 'subject_type' => $job->getMorphClass(), 'subject_id' => $job->id, 'properties' => ['before' => $before, 'after' => $job->fresh('rows')->toArray()]]);
 
             return $job;

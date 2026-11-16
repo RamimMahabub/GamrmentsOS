@@ -1,6 +1,7 @@
 <form method="POST" action="{{ route('sewing-jobs.store') }}" x-data="sewingForm(@js(['available' => $available, 'rows' => $rows, 'step' => $step]))" class="sewing-inline-form">
     @csrf
     <input type="hidden" name="current_step" value="{{ $step }}">
+    <input type="hidden" name="workflow" :value="workflow">
     <div class="sewing-inline-meta">
         <label class="field">Date<input type="date" required name="sewing_date" value="{{ now()->toDateString() }}"></label>
         <label class="field">Staff<select required name="staff_id"><option value="">Choose staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}">{{ $staff->name }}</option>@endforeach</select></label>
@@ -10,17 +11,16 @@
         <div class="sewing-stage-header">
             <div class="sewing-stage-icon">
                 @if(in_array($step, ['qc_phase_1', 'qc_phase_2'], true))
-                    <x-icon name="{{ $step === 'qc_phase_1' ? 'check' : 'shield' }}" class="h-6 w-6"/>
+                    <x-icon name="{{ $step === 'qc_phase_1' ? 'check' : 'shield' }}" class="h-4 w-4"/>
                 @elseif($step === 'iron')
-                    <x-icon name="sparkles" class="h-6 w-6"/>
+                    <x-icon name="sparkles" class="h-4 w-4"/>
                 @else
-                    →
+                    &rarr;
                 @endif
             </div>
             <div>
-                <div class="sewing-eyebrow">Current station</div>
-                <h2>{{ strtoupper(str_replace('_', ' ', $step)) }}</h2>
-                <p class="hint">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-ink">{{ strtoupper(str_replace('_', ' ', $step)) }}</h2>
+                <p class="hint text-[11px]">
                     @if(in_array($step, ['qc_phase_1', 'qc_phase_2'], true))
                         Select batches and record passed garments, altered count, and rejected count.
                     @elseif($step === 'iron')
@@ -31,56 +31,56 @@
                 </p>
             </div>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3 bg-[#fafafc]">
-            <div class="flex flex-wrap items-center gap-2.5">
-                <input type="search" class="text-xs py-1.5 px-3 rounded-xl border border-line bg-surface focus:border-accent w-44 sm:w-52" placeholder="Search lot, color, DIA..." x-model="search">
-                <select class="text-xs font-semibold py-1.5 pl-3 pr-8 rounded-xl border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[7.5rem]" x-model="lotFilter">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3.5 py-1.5 bg-[#fafafc]">
+            <div class="flex flex-wrap items-center gap-1.5">
+                <input type="search" class="text-xs py-1 px-2 rounded-lg border border-line bg-surface focus:border-accent w-36 sm:w-44" placeholder="Search lot, color, DIA..." x-model="search">
+                <select class="text-xs font-medium py-1 px-2 rounded-lg border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[6.5rem]" x-model="lotFilter">
                     <option value="">All lots</option>
                     <template x-for="l in lots" :key="l">
                         <option :value="l" x-text="l"></option>
                     </template>
                 </select>
-                <select class="text-xs font-semibold py-1.5 pl-3 pr-8 rounded-xl border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[6.5rem]" x-model="diaFilter">
+                <select class="text-xs font-medium py-1 px-2 rounded-lg border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[5.5rem]" x-model="diaFilter">
                     <option value="">All DIA</option>
                     <template x-for="d in dias" :key="d">
                         <option :value="d" x-text="'DIA ' + d"></option>
                     </template>
                 </select>
-                <select class="text-xs font-semibold py-1.5 pl-3 pr-8 rounded-xl border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[7.5rem]" x-model="colorFilter">
+                <select class="text-xs font-medium py-1 px-2 rounded-lg border border-line bg-surface text-ink focus:border-accent cursor-pointer min-w-[6.5rem]" x-model="colorFilter">
                     <option value="">All colors</option>
                     <template x-for="c in colors" :key="c">
                         <option :value="c" x-text="c"></option>
                     </template>
                 </select>
-                <button type="button" x-show="search || lotFilter || diaFilter || colorFilter" @click="search = ''; lotFilter = ''; diaFilter = ''; colorFilter = '';" class="text-xs text-muted hover:text-accent font-medium px-1">Clear filters</button>
+                <button type="button" x-show="search || lotFilter || diaFilter || colorFilter" @click="search = ''; lotFilter = ''; diaFilter = ''; colorFilter = '';" class="text-[11px] text-muted hover:text-accent font-medium px-1">Clear</button>
             </div>
-            <div class="text-xs text-muted font-medium">
+            <div class="text-[11px] text-muted font-medium">
                 <span x-text="filteredAvailable.length"></span> of <span x-text="available.length"></span> batches
-                <span x-show="rows.length" class="ml-1 text-accent font-semibold" x-text="'(' + rows.length + ' selected)'"></span>
+                <span x-show="rows.length" class="ml-1 text-accent font-semibold" x-text="'(' + rows.length + ' sel)'"></span>
             </div>
         </div>
         <div class="table-wrap">
             <table class="data-table sewing-stage-table">
                 <thead>
                     <tr>
-                        <th class="sewing-select-column">
+                        <th class="sewing-select-column" style="width: 3.5rem; text-align: center;">
                             <label class="flex items-center justify-center cursor-pointer" title="Select all visible">
                                 <input type="checkbox" class="sewing-row-checkbox" :checked="allSelected(filteredAvailable)" x-effect="$el.indeterminate = partiallySelected(filteredAvailable)" :disabled="!filteredAvailable.length" @change="toggleAll(filteredAvailable, $event.target.checked)">
                             </label>
                         </th>
-                        <th>Batch</th>
-                        <th>DIA</th>
-                        <th class="number">Available</th>
+                        <th style="{{ in_array($step, ['qc_phase_1', 'qc_phase_2'], true) ? 'width: 17%;' : ($step === 'neck_finishing' ? 'width: 22%;' : 'width: 25%;') }} text-align: left;">Batch</th>
+                        <th style="{{ in_array($step, ['qc_phase_1', 'qc_phase_2'], true) ? 'width: 10%;' : ($step === 'neck_finishing' ? 'width: 12%;' : 'width: 14%;') }} text-align: left;">DIA</th>
+                        <th class="number" style="{{ in_array($step, ['qc_phase_1', 'qc_phase_2'], true) ? 'width: 18%;' : ($step === 'neck_finishing' ? 'width: 22%;' : 'width: 25%;') }} text-align: right;">Available</th>
                         @if(in_array($step, ['qc_phase_1', 'qc_phase_2'], true))
-                            <th class="number">Passed<br><small>Dozen + pieces</small></th>
-                            <th class="number text-blue-700">Altered<br><small>pieces</small></th>
-                            <th class="number text-rose-700">Rejected<br><small>pieces</small></th>
+                            <th style="width: 27%; text-align: center;">Passed<br><small>Dozen + pieces</small></th>
+                            <th class="text-blue-700" style="width: 14%; text-align: center;">Altered<br><small>pieces</small></th>
+                            <th class="text-rose-700" style="width: 14%; text-align: center;">Rejected<br><small>pieces</small></th>
                         @elseif($step === 'iron')
-                            <th class="number">Ironed quantity<br><small>Dozen + pieces</small></th>
+                            <th style="width: 36%; text-align: center;">Ironed quantity<br><small>Dozen + pieces</small></th>
                         @else
-                            <th class="number">Release quantity<br><small>Dozen + pieces</small></th>
+                            <th style="{{ $step === 'neck_finishing' ? 'width: 28%;' : 'width: 36%;' }} text-align: center;">Release quantity<br><small>Dozen + pieces</small></th>
                             @if($step === 'neck_finishing')
-                                <th class="number">Rejected</th>
+                                <th class="text-rose-700" style="width: 16%; text-align: center;">Rejected<br><small>pieces</small></th>
                             @endif
                         @endif
                     </tr>
@@ -88,27 +88,30 @@
                 <tbody>
                     <template x-for="(sourceItem, sIdx) in filteredAvailable" :key="sourceItem.group_key">
                         <tr :class="(selected(sourceItem) ? 'sewing-source-selected' : '') + (sIdx % 2 === 1 ? ' row-even bg-[#f7f9fc]' : ' bg-white')">
-                            <td class="sewing-select-column">
+                            <td class="sewing-select-column" style="width: 3.5rem; text-align: center;">
                                 <input type="checkbox" class="sewing-row-checkbox" :checked="selected(sourceItem)" @change="toggle(sourceItem)">
                                 <template x-if="selected(sourceItem)">
                                     <input type="hidden" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][group_key]`" x-model="selectedRow(sourceItem).group_key">
                                 </template>
                             </td>
-                            <td>
+                            <td style="text-align: left;">
                                 <div class="sewing-inline-batch-color" x-text="sourceItem.color"></div>
                                 <strong x-text="sourceItem.lot"></strong>
                             </td>
-                            <td>
+                            <td style="text-align: left;">
                                 <span class="pill" x-text="'DIA ' + sourceItem.dia"></span>
                             </td>
-                            <td class="number">
+                            <td class="number" style="text-align: right;">
                                 <div class="sewing-available-quantity">
                                     <strong x-text="availableLabel(sourceItem)"></strong>
-                                    <span x-text="sourceItem.total_pieces + ' pieces'"></span>
+                                    <span class="text-[11px] text-muted font-normal block" x-text="sourceItem.total_pieces + ' pcs remaining'"></span>
+                                    <template x-if="sourceItem.used_pieces > 0">
+                                        <span class="text-[10px] text-muted/80 block mt-0.5 whitespace-nowrap" x-text="'(' + cutSummary(sourceItem) + ')'"></span>
+                                    </template>
                                 </div>
                             </td>
                             @if(in_array($step, ['qc_phase_1', 'qc_phase_2'], true))
-                                <td class="number">
+                                <td style="text-align: center;">
                                     <template x-if="selected(sourceItem)">
                                         <div class="sewing-compact-quantity">
                                             <label><span>Dozen</span><input class="sewing-stage-quantity-input" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][{{ $step }}_dozens]`" x-model="selectedRow(sourceItem).{{ $step }}_dozens" placeholder="0"></label>
@@ -118,24 +121,24 @@
                                             <input type="hidden" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][pieces]`" :value="selectedRow(sourceItem).{{ $step }}_pieces">
                                         </div>
                                     </template>
-                                    <span x-show="!selected(sourceItem)" class="hint">Select batch</span>
+                                    <span x-show="!selected(sourceItem)" class="hint" style="display: block; text-align: center;">Select batch</span>
                                 </td>
-                                <td class="number">
+                                <td style="text-align: center;">
                                     <template x-if="selected(sourceItem)">
-                                        <div class="flex items-center justify-end">
+                                        <div class="flex items-center justify-center">
                                             <input class="sewing-stage-quantity-input w-20 text-center font-semibold text-blue-800 border-blue-300 bg-blue-50/50 focus:border-blue-500 focus:ring-blue-500" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][{{ $step }}_altered_pieces]`" x-model="selectedRow(sourceItem).{{ $step }}_altered_pieces" @input="syncQcPassed(selectedRow(sourceItem), sourceItem, $event)" placeholder="0" title="Altered pieces">
                                         </div>
                                     </template>
                                 </td>
-                                <td class="number">
+                                <td style="text-align: center;">
                                     <template x-if="selected(sourceItem)">
-                                        <div class="flex items-center justify-end">
+                                        <div class="flex items-center justify-center">
                                             <input class="sewing-stage-quantity-input w-20 text-center font-semibold text-rose-800 border-rose-300 bg-rose-50/50 focus:border-rose-500 focus:ring-rose-500" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][{{ $step }}_rejected_pieces]`" x-model="selectedRow(sourceItem).{{ $step }}_rejected_pieces" @input="syncQcPassed(selectedRow(sourceItem), sourceItem, $event)" placeholder="0" title="Rejected pieces">
                                         </div>
                                     </template>
                                 </td>
                             @else
-                                <td class="number">
+                                <td style="text-align: center;">
                                     <template x-if="selected(sourceItem)">
                                         <div class="sewing-compact-quantity">
                                             <label><span>Dozen</span><input class="sewing-stage-quantity-input" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][{{ $step }}_dozens]`" x-model="selectedRow(sourceItem).{{ $step }}_dozens" placeholder="0"></label>
@@ -145,12 +148,14 @@
                                             <input type="hidden" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][pieces]`" :value="selectedRow(sourceItem).{{ $step }}_pieces">
                                         </div>
                                     </template>
-                                    <span x-show="!selected(sourceItem)" class="hint">Select batch</span>
+                                    <span x-show="!selected(sourceItem)" class="hint" style="display: block; text-align: center;">Select batch</span>
                                 </td>
                                 @if($step === 'neck_finishing')
-                                    <td class="number">
+                                    <td style="text-align: center;">
                                         <template x-if="selected(sourceItem)">
-                                            <input class="sewing-stage-quantity-input" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][rejected_pieces]`" x-model="selectedRow(sourceItem).rejected_pieces" placeholder="0">
+                                            <div class="flex items-center justify-center">
+                                                <input class="sewing-stage-quantity-input w-20 text-center font-semibold text-rose-800 border-rose-300 bg-rose-50/50 focus:border-rose-500 focus:ring-rose-500" type="number" required min="0" step="1" :name="`rows[${rows.indexOf(selectedRow(sourceItem))}][rejected_pieces]`" x-model="selectedRow(sourceItem).rejected_pieces" placeholder="0" aria-label="Rejected pieces">
+                                            </div>
                                         </template>
                                     </td>
                                 @endif

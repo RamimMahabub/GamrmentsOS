@@ -109,25 +109,17 @@
                 <div class="cutting-station-grid">
                     @foreach($sandoSteps as $step)
                         <div class="cutting-station-card {{ $step['is_current'] ? 'active' : '' }}">
-                            <a href="{{ $step['index_url'] }}" class="w-full flex-1 block focus:outline-none" title="View {{ $step['label'] }} list">
-                                <div class="flex items-center justify-between w-full">
-                                    <span class="cutting-station-number">{{ $step['number'] }}</span>
-                                    @if($step['is_current'])
-                                        <span class="pill text-[10px] font-bold text-[#526500] bg-[#f0f5df] border border-[#ccd994]">Current view</span>
-                                    @else
-                                        <span class="text-[11px] font-medium text-muted hover:text-ink">View table →</span>
-                                    @endif
+                            <a href="{{ $step['index_url'] }}" class="flex items-center gap-2 flex-1 min-w-0" title="View {{ $step['label'] }}">
+                                <span class="cutting-station-number">{{ $step['number'] }}</span>
+                                <div class="min-w-0">
+                                    <strong class="block truncate text-xs">{{ $step['label'] }}</strong>
+                                    <span class="text-[10px] text-muted block truncate">{{ $step['description'] }}</span>
                                 </div>
-                                <span class="cutting-station-icon">
-                                    <x-icon name="{{ $step['icon'] }}" class="h-7 w-7"/>
-                                </span>
-                                <strong>{{ $step['label'] }}</strong>
-                                <span class="cutting-station-desc block">{{ $step['description'] }}</span>
                             </a>
-                            <div class="cutting-station-btn">
-                                <a href="{{ $step['create_url'] }}" class="btn {{ $step['is_current'] ? 'btn-primary shadow-sm shadow-accent/25' : 'btn-secondary' }} w-full justify-center text-xs font-semibold">
-                                    <x-icon name="plus" class="h-3.5 w-3.5"/>
-                                    Add {{ $step['short_label'] }} Job
+                            <div class="cutting-station-btn flex items-center gap-1 shrink-0 ml-1.5">
+                                <a href="{{ $step['create_url'] }}" class="btn {{ $step['is_current'] ? 'btn-primary' : 'btn-secondary' }} btn-xs">
+                                    <x-icon name="plus" class="h-3 w-3"/>
+                                    Add
                                 </a>
                             </div>
                         </div>
@@ -138,25 +130,17 @@
                 <div class="cutting-station-grid">
                     @foreach($underpantsSteps as $step)
                         <div class="cutting-station-card {{ $step['is_current'] ? 'active' : '' }}">
-                            <a href="{{ $step['index_url'] }}" class="w-full flex-1 block focus:outline-none" title="View {{ $step['label'] }} list">
-                                <div class="flex items-center justify-between w-full">
-                                    <span class="cutting-station-number">{{ $step['number'] }}</span>
-                                    @if($step['is_current'])
-                                        <span class="pill text-[10px] font-bold text-[#526500] bg-[#f0f5df] border border-[#ccd994]">Current view</span>
-                                    @else
-                                        <span class="text-[11px] font-medium text-muted hover:text-ink">View table →</span>
-                                    @endif
+                            <a href="{{ $step['index_url'] }}" class="flex items-center gap-2 flex-1 min-w-0" title="View {{ $step['label'] }}">
+                                <span class="cutting-station-number">{{ $step['number'] }}</span>
+                                <div class="min-w-0">
+                                    <strong class="block truncate text-xs">{{ $step['label'] }}</strong>
+                                    <span class="text-[10px] text-muted block truncate">{{ $step['description'] }}</span>
                                 </div>
-                                <span class="cutting-station-icon">
-                                    <x-icon name="{{ $step['icon'] }}" class="h-7 w-7"/>
-                                </span>
-                                <strong>{{ $step['label'] }}</strong>
-                                <span class="cutting-station-desc block">{{ $step['description'] }}</span>
                             </a>
-                            <div class="cutting-station-btn">
-                                <a href="{{ $step['create_url'] }}" class="btn {{ $step['is_current'] ? 'btn-primary shadow-sm shadow-accent/25' : 'btn-secondary' }} w-full justify-center text-xs font-semibold">
-                                    <x-icon name="plus" class="h-3.5 w-3.5"/>
-                                    Add {{ $step['short_label'] }} Job
+                            <div class="cutting-station-btn flex items-center gap-1 shrink-0 ml-1.5">
+                                <a href="{{ $step['create_url'] }}" class="btn {{ $step['is_current'] ? 'btn-primary' : 'btn-secondary' }} btn-xs">
+                                    <x-icon name="plus" class="h-3 w-3"/>
+                                    Add
                                 </a>
                             </div>
                         </div>

@@ -1,195 +1,186 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
             <div>
-                <div class="eyebrow flex items-center gap-2 mb-1">
-                    <span class="h-2 w-2 rounded-full bg-accent animate-pulse"></span>
-                    Live Manufacturing Command Center
-                </div>
-                <h1 class="text-3xl font-bold tracking-tight text-ink">Production Overview</h1>
-                <p class="text-sm text-muted mt-1">Real-time tracking of yarn inventory, active knitting programs, dyeing lots, and cutting batches.</p>
+                <h1 class="text-xl font-bold tracking-tight text-ink">Production Overview</h1>
+                <p class="text-xs text-muted">Real-time telemetry of yarn inventory, active knitting programs, dyeing lots, and cutting.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a class="btn btn-secondary shadow-sm" href="{{ route('yarns.create') }}">
-                    <x-icon name="spool" class="h-4 w-4"/>
+            <div class="flex items-center gap-2">
+                <a class="btn btn-secondary btn-xs" href="{{ route('yarns.create') }}">
+                    <x-icon name="spool" class="h-3 w-3"/>
                     Add Yarn
                 </a>
-                <a class="btn btn-primary shadow-sm shadow-accent/20" href="{{ route('knitting-jobs.create') }}">
-                    <x-icon name="plus" class="h-4 w-4"/>
-                    Assign Knitting Job
+                <a class="btn btn-primary btn-xs" href="{{ route('knitting-jobs.create') }}">
+                    <x-icon name="plus" class="h-3 w-3"/>
+                    Assign Knitting
                 </a>
             </div>
         </div>
     </x-slot>
 
     <!-- Manufacturing Stage Pipeline Flow Visualizer -->
-    <section class="mb-8 rounded-3xl border border-line bg-surface p-6 shadow-sm" aria-label="Production pipeline status">
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <section class="mb-3.5 rounded-xl border border-line bg-surface p-3.5 shadow-2xs" aria-label="Production pipeline status">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
             <div>
-                <span class="text-xs font-semibold uppercase tracking-wider text-muted">End-to-End Production Stages</span>
-                <h3 class="text-lg font-bold text-ink mt-0.5">Floor Flow & Pipeline Health</h3>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">End-to-End Production Stages</span>
+                <h3 class="text-sm font-bold text-ink">Floor Flow & Pipeline Health</h3>
             </div>
             <div class="flex items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-soft text-accent-ink font-semibold">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-accent-soft text-accent-ink font-semibold text-[11px]">
                     <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
-                    {{ $totalLotsCount }} Active Lots Tracked
+                    {{ $activeLotsCount }} Active Lots Tracked
                 </span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             <!-- Stage 1: Warehouse / Yarn -->
-            <a href="{{ route('yarns.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
-                        <x-icon name="spool" class="h-4 w-4"/>
+            <a href="{{ route('yarns.index') }}" class="group relative block rounded-xl border border-line bg-raised/50 p-2.5 transition-all duration-120 hover:border-accent-line hover:bg-surface shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-surface border border-line text-ink group-hover:text-accent">
+                        <x-icon name="spool" class="h-3 w-3"/>
                     </span>
-                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 01</span>
+                    <span class="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface border border-line text-muted">01</span>
                 </div>
-                <div class="text-xs font-semibold text-muted uppercase tracking-wider">Yarn Inventory</div>
-                <div class="text-xl font-bold text-ink mt-1">{{ \App\Support\Decimal::display($totalKg) }} <span class="text-xs font-normal text-muted">kg</span></div>
-                <div class="text-xs text-muted mt-1">{{ $yarns->count() }} items in warehouse stock</div>
-                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
-                    <span class="link group-hover:underline">View stock →</span>
+                <div class="text-[10px] font-bold text-muted uppercase tracking-wider">Yarn Inventory</div>
+                <div class="text-sm font-bold text-ink mt-0.5">{{ \App\Support\Decimal::display($totalKg) }} <span class="text-[10px] font-normal text-muted">kg</span></div>
+                <div class="mt-2 pt-1.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span class="link text-[11px] group-hover:underline">Stock &rarr;</span>
                     <span class="text-muted">{{ \App\Support\Decimal::display(\App\Modules\Yarn\UnitConverter::fromKg($totalKg,'lb')) }} lb</span>
                 </div>
             </a>
 
             <!-- Stage 2: Knitting -->
-            <a href="{{ route('knitting-jobs.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
-                        <x-icon name="layers" class="h-4 w-4"/>
+            <a href="{{ route('knitting-jobs.index') }}" class="group relative block rounded-xl border border-line bg-raised/50 p-2.5 transition-all duration-120 hover:border-accent-line hover:bg-surface shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-surface border border-line text-ink group-hover:text-accent">
+                        <x-icon name="layers" class="h-3 w-3"/>
                     </span>
-                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 02</span>
+                    <span class="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface border border-line text-muted">02</span>
                 </div>
-                <div class="text-xs font-semibold text-muted uppercase tracking-wider">In Knitting</div>
-                <div class="text-xl font-bold text-ink mt-1">{{ $counts['knitting'] ?? 0 }} <span class="text-xs font-normal text-muted">lots</span></div>
-                <div class="text-xs text-muted mt-1">Machine allocations & DIA setups</div>
-                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
-                    <span class="link group-hover:underline">Knitting jobs →</span>
-                    <span class="pill">Circular</span>
+                <div class="text-[10px] font-bold text-muted uppercase tracking-wider">In Knitting</div>
+                <div class="text-sm font-bold text-ink mt-0.5">{{ $counts['knitting'] ?? 0 }} <span class="text-[10px] font-normal text-muted">lots</span></div>
+                <div class="mt-2 pt-1.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span class="link text-[11px] group-hover:underline">Knitting &rarr;</span>
+                    <span class="pill text-[10px]">Circular</span>
                 </div>
             </a>
 
             <!-- Stage 3: Dyeing -->
-            <a href="{{ route('dyeing-jobs.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
-                        <x-icon name="drop" class="h-4 w-4"/>
+            <a href="{{ route('dyeing-jobs.index') }}" class="group relative block rounded-xl border border-line bg-raised/50 p-2.5 transition-all duration-120 hover:border-accent-line hover:bg-surface shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-surface border border-line text-ink group-hover:text-accent">
+                        <x-icon name="drop" class="h-3 w-3"/>
                     </span>
-                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 03</span>
+                    <span class="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface border border-line text-muted">03</span>
                 </div>
-                <div class="text-xs font-semibold text-muted uppercase tracking-wider">In Dyeing</div>
-                <div class="text-xl font-bold text-ink mt-1">{{ $counts['dyeing'] ?? 0 }} <span class="text-xs font-normal text-muted">lots</span></div>
-                <div class="text-xs text-muted mt-1">Color batches & finishing return</div>
-                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
-                    <span class="link group-hover:underline">Dyeing jobs →</span>
-                    <span class="pill">Finishing</span>
+                <div class="text-[10px] font-bold text-muted uppercase tracking-wider">In Dyeing</div>
+                <div class="text-sm font-bold text-ink mt-0.5">{{ $counts['dyeing'] ?? 0 }} <span class="text-[10px] font-normal text-muted">lots</span></div>
+                <div class="mt-2 pt-1.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span class="link text-[11px] group-hover:underline">Dyeing &rarr;</span>
+                    <span class="pill text-[10px]">Finishing</span>
                 </div>
             </a>
 
             <!-- Stage 4: Cutting -->
-            <a href="{{ route('cutting.body.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
-                        <x-icon name="scissors" class="h-4 w-4"/>
+            <a href="{{ route('cutting.body.index') }}" class="group relative block rounded-xl border border-line bg-raised/50 p-2.5 transition-all duration-120 hover:border-accent-line hover:bg-surface shadow-2xs">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-surface border border-line text-ink group-hover:text-accent">
+                        <x-icon name="scissors" class="h-3 w-3"/>
                     </span>
-                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 04</span>
+                    <span class="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface border border-line text-muted">04</span>
                 </div>
-                <div class="text-xs font-semibold text-muted uppercase tracking-wider">Cutting Section</div>
-                <div class="text-xl font-bold text-ink mt-1">{{ $availableRollsCount }} <span class="text-xs font-normal text-muted">rolls ready</span></div>
-                <div class="text-xs text-muted mt-1">{{ $cuttingJobsCount }} cut job executions logged</div>
-                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
-                    <span class="link group-hover:underline">Body / Neck / Rib →</span>
-                    <span class="pill">Rolls</span>
+                <div class="text-[10px] font-bold text-muted uppercase tracking-wider">Cutting Section</div>
+                <div class="text-sm font-bold text-ink mt-0.5">{{ $availableRollsCount }} <span class="text-[10px] font-normal text-muted">rolls ready</span></div>
+                <div class="mt-2 pt-1.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span class="link text-[11px] group-hover:underline">Cutting &rarr;</span>
+                    <span class="pill text-[10px]">Rolls</span>
                 </div>
             </a>
 
             <!-- Stage 5: Sewing -->
-            <a href="{{ route('sewing-jobs.index') }}" class="group relative block rounded-2xl border border-line bg-raised/50 p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-line hover:bg-surface hover:shadow-md cursor-pointer focus-visible:outline-2 focus-visible:outline-accent">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-surface border border-line text-ink shadow-2xs group-hover:border-accent-line group-hover:text-accent">
-                        <x-icon name="factory" class="h-4 w-4"/>
+            <a href="{{ route('sewing-jobs.index') }}" class="group relative block rounded-xl border border-line bg-raised/50 p-2.5 transition-all duration-120 hover:border-accent-line hover:bg-surface shadow-2xs col-span-2 sm:col-span-1">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-surface border border-line text-ink group-hover:text-accent">
+                        <x-icon name="factory" class="h-3 w-3"/>
                     </span>
-                    <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-surface border border-line text-muted">Step 05</span>
+                    <span class="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-surface border border-line text-muted">05</span>
                 </div>
-                <div class="text-xs font-semibold text-muted uppercase tracking-wider">Sewing Assembly</div>
-                <div class="text-xl font-bold text-ink mt-1">{{ $counts['sewing'] ?? 0 }} <span class="text-xs font-normal text-muted">lots in sewing</span></div>
-                <div class="text-xs text-muted mt-1">5-station production flow</div>
-                <div class="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs">
-                    <span class="link group-hover:underline">Stations & Handoffs →</span>
-                    <span class="pill">Assembly</span>
+                <div class="text-[10px] font-bold text-muted uppercase tracking-wider">Sewing Assembly</div>
+                <div class="text-sm font-bold text-ink mt-0.5">{{ $counts['sewing'] ?? 0 }} <span class="text-[10px] font-normal text-muted">lots</span></div>
+                <div class="mt-2 pt-1.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span class="link text-[11px] group-hover:underline">Stations &rarr;</span>
+                    <span class="pill text-[10px]">Assembly</span>
                 </div>
             </a>
         </div>
     </section>
 
     <!-- Key Metrics Grid -->
-    <div class="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mb-3.5 grid gap-2.5 grid-cols-2 lg:grid-cols-4">
         <!-- Metric 1: Total Stock (Hero Lime) -->
-        <a href="{{ route('yarns.index') }}" class="metric metric-hero block cursor-pointer transition-all duration-150 hover:brightness-105 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-accent">
-            <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#283000]">
+        <a href="{{ route('yarns.index') }}" class="metric metric-hero block cursor-pointer transition-all duration-120 hover:brightness-105">
+            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#283000]">
                 <span>Yarn Available</span>
-                <span class="metric-icon"><x-icon name="spool" class="h-4 w-4"/></span>
+                <span class="metric-icon"><x-icon name="spool" class="h-3.5 w-3.5"/></span>
             </div>
-            <div class="metric-value">{{ \App\Support\Decimal::display($totalKg) }} <span class="text-sm font-normal text-[#404c00]">kg</span></div>
-            <div class="mt-3 flex items-center justify-between text-xs text-[#353e00]">
+            <div class="metric-value">{{ \App\Support\Decimal::display($totalKg) }} <span class="text-xs font-normal text-[#404c00]">kg</span></div>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-[#353e00]">
                 <span>{{ \App\Support\Decimal::display(\App\Modules\Yarn\UnitConverter::fromKg($totalKg,'lb')) }} lb</span>
-                <span class="font-medium underline decoration-current/40 underline-offset-4">{{ $yarns->count() }} items &rarr;</span>
+                <span class="font-medium underline decoration-current/40">{{ $yarns->count() }} items &rarr;</span>
             </div>
         </a>
 
         <!-- Metric 2: Active Lots (Dark) -->
-        <a href="{{ route('knitting-jobs.index') }}" class="metric metric-dark block cursor-pointer transition-all duration-150 hover:brightness-110 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-accent">
-            <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-neutral-400">
+        <a href="{{ route('knitting-jobs.index') }}" class="metric metric-dark block cursor-pointer transition-all duration-120 hover:brightness-110">
+            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                 <span>Active Lots</span>
-                <span class="metric-icon"><x-icon name="layers" class="h-4 w-4"/></span>
+                <span class="metric-icon"><x-icon name="layers" class="h-3.5 w-3.5"/></span>
             </div>
-            <div class="metric-value">{{ $totalLotsCount }}</div>
-            <div class="mt-3 flex items-center justify-between text-xs text-neutral-400">
-                <span>{{ collect(['knitting', 'dyeing', 'cutting', 'sewing'])->map(fn($st) => ($counts[$st] ?? 0) . ' ' . ucfirst($st))->filter(fn($txt) => !str_starts_with($txt, '0 '))->join(' • ') ?: 'No active lots' }}</span>
-                <span class="text-[#d5ff27] font-medium underline underline-offset-4">View lots &rarr;</span>
+            <div class="metric-value">{{ $activeLotsCount }} <span class="text-xs font-normal text-neutral-400">/ {{ $totalLotsCount }}</span></div>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-neutral-400">
+                <span class="truncate">{{ collect(['knitting', 'dyeing', 'cutting', 'sewing', 'packing'])->map(fn($st) => ($counts[$st] ?? 0) . ' ' . ucfirst($st))->filter(fn($txt) => !str_starts_with($txt, '0 '))->join(' • ') ?: 'No active lots' }}</span>
+                <span class="text-[#d5ff27] font-medium underline shrink-0 ml-1">Lots &rarr;</span>
             </div>
         </a>
 
         <!-- Metric 3: Fabric Rolls -->
-        <a href="{{ route('cutting.body.create') }}" class="metric block cursor-pointer transition-all duration-150 hover:border-accent-line hover:-translate-y-1 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-accent">
-            <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
+        <a href="{{ route('cutting.body.create') }}" class="metric block cursor-pointer transition-all duration-120 hover:border-accent-line">
+            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted">
                 <span>Rolls In Stock</span>
-                <span class="metric-icon"><x-icon name="drop" class="h-4 w-4"/></span>
+                <span class="metric-icon"><x-icon name="drop" class="h-3.5 w-3.5"/></span>
             </div>
             <div class="metric-value">{{ $availableRollsCount }} <span class="text-xs font-normal text-muted">/ {{ $totalRollsCount }}</span></div>
-            <div class="mt-3 flex items-center justify-between text-xs text-muted">
-                <span>Available for cutting</span>
-                <span class="link font-semibold">Cut now →</span>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-muted">
+                <span>For cutting</span>
+                <span class="link font-semibold">Cut now &rarr;</span>
             </div>
         </a>
 
         <!-- Metric 4: Mill Partners -->
-        <a href="{{ route('companies.index') }}" class="metric block cursor-pointer transition-all duration-150 hover:border-accent-line hover:-translate-y-1 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-accent">
-            <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
-                <span>Active Mills & Houses</span>
-                <span class="metric-icon"><x-icon name="building" class="h-4 w-4"/></span>
+        <a href="{{ route('companies.index') }}" class="metric block cursor-pointer transition-all duration-120 hover:border-accent-line">
+            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted">
+                <span>Active Partners</span>
+                <span class="metric-icon"><x-icon name="building" class="h-3.5 w-3.5"/></span>
             </div>
             <div class="metric-value">{{ $activePartnersCount }}</div>
-            <div class="mt-3 flex items-center justify-between text-xs text-muted">
-                <span>Knitting & Dyeing partners</span>
-                <span class="link font-semibold">Directory →</span>
+            <div class="mt-1 flex items-center justify-between text-[11px] text-muted">
+                <span>Knitting & Dyeing</span>
+                <span class="link font-semibold">Directory &rarr;</span>
             </div>
         </a>
     </div>
 
     <!-- Data Tables Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         <!-- Recent Lots -->
         <div class="panel">
             <div class="panel-head">
                 <div>
                     <h2>Recent Production Lots</h2>
-                    <p class="text-xs text-muted mt-0.5">Trace fabric progress from yarn input to rolls</p>
+                    <p class="text-[11px] text-muted">Trace fabric progress from yarn input to rolls</p>
                 </div>
-                <a href="{{ route('knitting-jobs.index') }}" class="link text-xs">View all lots →</a>
+                <a href="{{ route('knitting-jobs.index') }}" class="link text-xs">View all &rarr;</a>
             </div>
             <div class="table-wrap">
                 <table class="data-table">
@@ -215,12 +206,16 @@
                                 <td>
                                     @php
                                     $stageClasses = match($lot->current_stage) {
+                                        'dispatched' => 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold',
+                                        'packing' => 'bg-indigo-100 text-indigo-800',
                                         'sewing' => 'bg-emerald-100 text-emerald-800',
                                         'cutting' => 'bg-blue-100 text-blue-800',
                                         'dyeing' => 'bg-purple-100 text-purple-800',
                                         default => 'bg-lime-100 text-lime-900',
                                     };
                                     $dotClasses = match($lot->current_stage) {
+                                        'dispatched' => 'bg-emerald-600',
+                                        'packing' => 'bg-indigo-600',
                                         'sewing' => 'bg-emerald-600',
                                         'cutting' => 'bg-blue-600',
                                         'dyeing' => 'bg-purple-600',

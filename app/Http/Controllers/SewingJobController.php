@@ -20,8 +20,20 @@ class SewingJobController extends Controller
 {
     public function index(Request $request): View
     {
-        $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'], 'staff_id' => ['nullable', 'integer'], 'lot_id' => ['nullable', 'integer']]);
-        $filteredJobs = SewingJob::with(['staff', 'rows.lot'])->when($request->from, fn ($q) => $q->whereDate('sewing_date', '>=', $request->from))->when($request->to, fn ($q) => $q->whereDate('sewing_date', '<=', $request->to))->when($request->staff_id, fn ($q) => $q->where('staff_id', $request->staff_id))->when($request->lot_id, fn ($q) => $q->whereHas('rows', fn ($q) => $q->where('lot_id', $request->lot_id)));
+        $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'staff_id' => ['nullable', 'integer'],
+            'lot_id' => ['nullable', 'integer'],
+            'workflow' => ['nullable', 'string', 'in:sando,underpants'],
+        ]);
+
+        $filteredJobs = SewingJob::with(['staff', 'rows.lot'])
+            ->when($request->from, fn ($q) => $q->whereDate('sewing_date', '>=', $request->from))
+            ->when($request->to, fn ($q) => $q->whereDate('sewing_date', '<=', $request->to))
+            ->when($request->staff_id, fn ($q) => $q->where('staff_id', $request->staff_id))
+            ->when($request->lot_id, fn ($q) => $q->whereHas('rows', fn ($q) => $q->where('lot_id', $request->lot_id)));
+
         $overviewJobs = (clone $filteredJobs)->get();
         $jobs = (clone $filteredJobs)->latest('sewing_date')->latest('id')->paginate(25)->withQueryString();
 
@@ -49,57 +61,91 @@ class SewingJobController extends Controller
             ['key' => 'qc_phase_2', 'label' => 'QC PHASE 2', 'description' => 'Final quality inspection', 'icon' => 'shield', 'group' => 'qc']
         )->all();
 
-        $allSteps = collect($steps)->concat($underpantsSteps)->unique('key')->values();
+        // Strictly separate jobs by product type (Sando vs Underpants)
+        $sandoJobs = $overviewJobs->filter(fn (SewingJob $job) => ! (bool) $job->rows->first()?->lot?->isUnderpants())->values();
+        $underpantsJobs = $overviewJobs->filter(fn (SewingJob $job) => (bool) $job->rows->first()?->lot?->isUnderpants())->values();
 
-        $stationPanels = $allSteps->mapWithKeys(fn (array $step): array => [$step['key'] => [
-            ...$this->formData(new SewingJob, $step['key']),
-            'stationJobs' => $overviewJobs->where('current_step', $step['key'])->values(),
+        // Station panels separated by workflow so shared steps (QC 1, Iron, QC 2) never mix batches or jobs
+        $sandoStationPanels = collect($steps)->mapWithKeys(fn (array $step): array => [$step['key'] => [
+            ...$this->formData(new SewingJob, $step['key'], 'sando'),
+            'stationJobs' => $sandoJobs->where('current_step', $step['key'])->values(),
         ]])->all();
 
-        $overview = $allSteps->mapWithKeys(function (array $step) use ($overviewJobs): array {
-            $stepJobs = $overviewJobs->where('current_step', $step['key']);
-            $column = $step['key'].'_dozens';
-            $piecesColumn = $step['key'].'_pieces';
+        $underpantsStationPanels = collect($underpantsSteps)->mapWithKeys(fn (array $step): array => [$step['key'] => [
+            ...$this->formData(new SewingJob, $step['key'], 'underpants'),
+            'stationJobs' => $underpantsJobs->where('current_step', $step['key'])->values(),
+        ]])->all();
 
-            $basePieces = Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->map(function (SewingJobRow $row) use ($step, $column, $piecesColumn): string {
-                if (isset($row->stage_data['total_pieces']) && ($row->stage_data['step'] ?? null) === $step['key']) {
-                    return (string) $row->stage_data['total_pieces'];
-                }
-                if ($row->job?->current_step === $step['key'] && isset($row->stage_data['dozens'])) {
-                    return (string) Decimal::of($row->stage_data['dozens'])->multipliedBy(12)->plus($row->stage_data['pieces'] ?? 0);
-                }
-                if (isset($row->{$column})) {
-                    return (string) Decimal::of($row->{$column})->multipliedBy(12)->plus($row->{$piecesColumn} ?? 0);
-                }
+        $computeOverview = function (Collection $stepsList, Collection $jobsList): array {
+            return $stepsList->mapWithKeys(function (array $step) use ($jobsList): array {
+                $stepJobs = $jobsList->where('current_step', $step['key']);
+                $column = $step['key'].'_dozens';
+                $piecesColumn = $step['key'].'_pieces';
 
-                return '0';
-            })));
+                $basePieces = Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->map(function (SewingJobRow $row) use ($step, $column, $piecesColumn): string {
+                    if (isset($row->stage_data['total_pieces']) && ($row->stage_data['step'] ?? null) === $step['key']) {
+                        return (string) $row->stage_data['total_pieces'];
+                    }
+                    if ($row->job?->current_step === $step['key'] && isset($row->stage_data['dozens'])) {
+                        return (string) Decimal::of($row->stage_data['dozens'])->multipliedBy(12)->plus($row->stage_data['pieces'] ?? 0);
+                    }
+                    if (isset($row->{$column})) {
+                        return (string) Decimal::of($row->{$column})->multipliedBy(12)->plus($row->{$piecesColumn} ?? 0);
+                    }
 
-            $alteredPieces = in_array($step['key'], ['qc_phase_1', 'qc_phase_2'], true)
-                ? (string) $stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck($step['key'].'_altered_pieces'))->sum()
-                : '0';
-            $rejectedPieces = in_array($step['key'], ['qc_phase_1', 'qc_phase_2'], true)
-                ? (string) $stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck($step['key'].'_rejected_pieces'))->sum()
-                : Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck('rejected_pieces')));
+                    return '0';
+                })));
 
-            return [$step['key'] => [
-                'executions' => $stepJobs->count(),
-                'batches' => $stepJobs->sum(fn (SewingJob $job): int => $job->rows->count()),
-                'pieces' => $basePieces,
-                'passed_pieces' => $basePieces,
-                'altered' => $alteredPieces,
-                'rejected' => $rejectedPieces,
-            ]];
-        })->all();
+                $alteredPieces = in_array($step['key'], ['qc_phase_1', 'qc_phase_2'], true)
+                    ? (string) $stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck($step['key'].'_altered_pieces'))->sum()
+                    : '0';
+                $rejectedPieces = in_array($step['key'], ['qc_phase_1', 'qc_phase_2'], true)
+                    ? (string) $stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck($step['key'].'_rejected_pieces'))->sum()
+                    : Decimal::sum($stepJobs->flatMap(fn (SewingJob $job) => $job->rows->pluck('rejected_pieces')));
+
+                return [$step['key'] => [
+                    'executions' => $stepJobs->count(),
+                    'batches' => $stepJobs->sum(fn (SewingJob $job): int => $job->rows->count()),
+                    'pieces' => $basePieces,
+                    'passed_pieces' => $basePieces,
+                    'altered' => $alteredPieces,
+                    'rejected' => $rejectedPieces,
+                ]];
+            })->all();
+        };
+
+        $sandoOverview = $computeOverview(collect($steps), $sandoJobs);
+        $underpantsOverview = $computeOverview(collect($underpantsSteps), $underpantsJobs);
+
+        $sandoKpis = [
+            'handoffs' => $sandoJobs->count(),
+            'batches' => $sandoJobs->sum(fn (SewingJob $job): int => $job->rows->count()),
+            'final_passed' => $sandoOverview['qc_phase_2']['pieces'] ?? '0',
+            'altered' => (int) Decimal::sum(collect($sandoOverview)->pluck('altered')),
+            'rejected' => Decimal::sum(collect($sandoOverview)->pluck('rejected')),
+        ];
+
+        $underpantsKpis = [
+            'handoffs' => $underpantsJobs->count(),
+            'batches' => $underpantsJobs->sum(fn (SewingJob $job): int => $job->rows->count()),
+            'final_passed' => $underpantsOverview['qc_phase_2']['pieces'] ?? '0',
+            'altered' => (int) Decimal::sum(collect($underpantsOverview)->pluck('altered')),
+            'rejected' => Decimal::sum(collect($underpantsOverview)->pluck('rejected')),
+        ];
 
         return view('sewing.index', [
             'jobs' => $jobs,
-            'overview' => $overview,
-            'overviewJobs' => $overviewJobs,
+            'sandoOverview' => $sandoOverview,
+            'underpantsOverview' => $underpantsOverview,
+            'sandoKpis' => $sandoKpis,
+            'underpantsKpis' => $underpantsKpis,
             'steps' => $steps,
             'underpantsSteps' => $underpantsSteps,
-            'stationPanels' => $stationPanels,
+            'sandoStationPanels' => $sandoStationPanels,
+            'underpantsStationPanels' => $underpantsStationPanels,
             'staffs' => Staff::orderBy('name')->get(),
+            'sandoLots' => Lot::where('product_type', 'sando')->latest('id')->get(),
+            'underpantsLots' => Lot::whereIn('product_type', ['boxer', 'underwear'])->latest('id')->get(),
             'lots' => Lot::latest('id')->get(),
         ]);
     }
@@ -114,10 +160,17 @@ class SewingJobController extends Controller
         $validated = $request->validated();
         $job = $service->save($validated);
         $step = $validated['current_step'] ?? $job->current_step;
+        $workflow = $request->input('workflow');
+        if (! $workflow) {
+            $isUnderpants = in_array($step, SewingService::getUnderpantsFlow(), true);
+            if ($isUnderpants && in_array($step, ['qc_phase_1', 'iron', 'qc_phase_2'], true)) {
+                $isUnderpants = (bool) $job->rows->first()?->lot?->isUnderpants();
+            }
+            $workflow = $isUnderpants ? 'underpants' : 'sando';
+        }
 
-        return to_route('sewing-jobs.index', ['step' => $step])
-            ->with('status', strtoupper(str_replace('_', ' ', $step)).' station handoff saved.')
-            ->with('active_step', $step);
+        return to_route('sewing-jobs.index', ['workflow' => $workflow])
+            ->with('status', strtoupper(str_replace('_', ' ', $step)).' station handoff saved.');
     }
 
     public function show(SewingJob $sewingJob): View
@@ -135,10 +188,14 @@ class SewingJobController extends Controller
         $validated = $request->validated();
         $service->save($validated, $sewingJob);
         $step = $validated['current_step'] ?? $sewingJob->current_step;
+        $workflow = $request->input('workflow');
+        if (! $workflow) {
+            $isUnderpants = (bool) $sewingJob->rows->first()?->lot?->isUnderpants();
+            $workflow = $isUnderpants ? 'underpants' : 'sando';
+        }
 
-        return to_route('sewing-jobs.index', ['step' => $step])
-            ->with('status', strtoupper(str_replace('_', ' ', $step)).' station handoff updated.')
-            ->with('active_step', $step);
+        return to_route('sewing-jobs.index', ['workflow' => $workflow])
+            ->with('status', strtoupper(str_replace('_', ' ', $step)).' station handoff updated.');
     }
 
     public function destroy(SewingJob $sewingJob, SewingService $service): RedirectResponse
@@ -151,11 +208,15 @@ class SewingJobController extends Controller
     private function form(SewingJob $job): View
     {
         $step = request('step', $job->exists ? $job->current_step : 'fold');
+        $workflow = request('workflow');
+        if (! $workflow && $job->exists) {
+            $workflow = $job->rows->first()?->lot?->isUnderpants() ? 'underpants' : 'sando';
+        }
 
-        return view('sewing.form', $this->formData($job, $step));
+        return view('sewing.form', $this->formData($job, $step, $workflow));
     }
 
-    private function formData(SewingJob $job, string $step): array
+    private function formData(SewingJob $job, string $step, ?string $workflow = null): array
     {
         $sandoSteps = ['fold', 'lock', 'down', 'neck_join', 'neck_finishing', 'qc_phase_1', 'iron', 'qc_phase_2'];
         $underpantsFlow = SewingService::getUnderpantsFlow();
@@ -164,17 +225,28 @@ class SewingJobController extends Controller
         abort_unless(in_array($step, $allowedSteps, true), 404);
 
         $isUnderpantsStep = in_array($step, $underpantsFlow, true);
+        if ($workflow === 'sando') {
+            $isUnderpantsStep = false;
+        } elseif ($workflow === 'underpants') {
+            $isUnderpantsStep = true;
+        }
         $steps = $isUnderpantsStep ? $underpantsFlow : $sandoSteps;
 
         $jobId = $job->id;
 
-        $available = CuttingJobRoll::with(['job', 'lot'])->whereIn('cutting_type', ['body', 'cutting', 'neck'])->whereHas('job')->get()->groupBy(fn (CuttingJobRoll $row): string => $row->lot_id.':'.$row->color.':'.$row->dia)->map(function (Collection $group, string $key) use ($step, $jobId): ?array {
+        $available = CuttingJobRoll::with(['job', 'lot'])->whereIn('cutting_type', ['body', 'cutting', 'neck'])->whereHas('job')->get()->groupBy(fn (CuttingJobRoll $row): string => $row->lot_id.':'.$row->color.':'.$row->dia)->map(function (Collection $group, string $key) use ($step, $jobId, $workflow): ?array {
             $firstRoll = $group->first();
             if (! $firstRoll || ! $firstRoll->lot) {
                 return null;
             }
 
             $isUnderpants = $firstRoll->lot->isUnderpants();
+            if ($workflow === 'sando' && $isUnderpants) {
+                return null;
+            }
+            if ($workflow === 'underpants' && ! $isUnderpants) {
+                return null;
+            }
 
             if ($isUnderpants) {
                 $cutRows = $group->where('cutting_type', 'cutting');
@@ -204,6 +276,18 @@ class SewingJobController extends Controller
             $availDozens = intdiv($availPiecesTotal, 12);
             $availPiecesRemainder = $availPiecesTotal % 12;
 
+            $cutTotalPieces = (int) $bodyPieces->toInt();
+            $cutTotalDozens = intdiv($cutTotalPieces, 12);
+            $cutTotalPiecesRemainder = $cutTotalPieces % 12;
+
+            $flow = SewingService::getFlowForLot($firstRoll->lot);
+            $stepIndex = array_search($step, $flow, true);
+            $isFirstStep = ($stepIndex === 0);
+
+            $usedPieces = (int) SewingService::getStepUsedPieces($key, $step, $jobId)->toInt();
+            $usedDozens = intdiv($usedPieces, 12);
+            $usedPiecesRemainder = $usedPieces % 12;
+
             $bodyRow = $group->firstWhere('cutting_type', 'body') ?? $firstRoll;
             $neckRow = $group->firstWhere('cutting_type', 'neck') ?? $firstRoll;
 
@@ -221,6 +305,13 @@ class SewingJobController extends Controller
                 'total_pieces' => $availPiecesTotal,
                 'pieces' => $availPiecesRemainder,
                 'dozens' => $availDozens,
+                'cut_total_pieces' => $cutTotalPieces,
+                'cut_total_dozens' => $cutTotalDozens,
+                'cut_total_remainder' => $cutTotalPiecesRemainder,
+                'used_pieces' => $usedPieces,
+                'used_dozens' => $usedDozens,
+                'used_remainder' => $usedPiecesRemainder,
+                'is_first_step' => $isFirstStep,
                 'source_body_row_id' => $bodyRow->id,
                 'source_neck_row_id' => $neckRow->id,
             ];

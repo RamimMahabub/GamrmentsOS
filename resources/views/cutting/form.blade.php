@@ -4,18 +4,58 @@
 <section class="panel grid gap-5 p-6 sm:grid-cols-3"><label class="field">Date<input type="date" required name="cutting_date" value="{{ old('cutting_date',$job->cutting_date?->toDateString() ?? now()->toDateString()) }}"></label><label class="field">Cutting man<select required name="staff_id"><option value="">Choose active staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}" @selected(old('staff_id',$job->staff_id)==$staff->id)>{{ $staff->name }}</option>@endforeach</select></label><label class="field">Notes<textarea name="notes">{{ old('notes',$job->notes) }}</textarea></label></section>
 
 @if($job->exists)
-<section class="panel"><div class="panel-head"><h2>Selected {{ $type === 'neck' ? 'body batches' : 'rolls' }}</h2><span class="hint">{{ $type === 'neck' ? 'Choose dozen, pieces, or dozen + pc for this neck job. Leave weight per dozen blank to calculate it from body input weight. Remaining fabric defaults to zero.' : 'Enter dozens; leave weight per dozen blank to calculate it from roll weight. Remaining fabric defaults to zero, giving zero waste. Enter a measured weight to override.' }}</span></div>
+<section class="panel">
+    <div class="panel-head flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2>Selected {{ $type === 'neck' ? 'body batches' : 'rolls' }}</h2>
+            <span class="hint">{{ $type === 'neck' ? 'Choose dozen, pieces, or dozen + pc for this neck job. Leave weight per dozen blank to calculate it from body input weight. Remaining fabric defaults to zero.' : 'Enter dozens; leave weight per dozen blank to calculate it from roll weight. Remaining fabric defaults to zero, giving zero waste. Enter a measured weight to override.' }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="submit" class="btn btn-primary btn-sm" :disabled="invalid">
+                Save changes
+            </button>
+        </div>
+    </div>
 <div class="table-wrap"><table class="data-table"><thead><tr><th>Batch / Lot / Color / DIA</th><th>{{ $type === 'neck' ? 'Body input weight' : 'Roll weight' }}, kg</th><th>{{ $type === 'neck' ? 'Quantity' : 'Dozens' }}</th><th>{{ $type === 'neck' ? 'Weight / dozen after neck cut' : 'Weight / dozen' }}</th><th>Unit</th><th>{{ config('cutting.labels.remaining_fabric_kg') }} (entered)</th><th>{{ config('cutting.labels.cut_weight_kg') }}, kg</th><th>{{ config('cutting.labels.cutting_scrap_kg') }}, kg</th><th>{{ config('cutting.labels.remaining_fabric_kg') }}, kg</th><th>{{ config('cutting.labels.waste_kg') }}, kg</th><th>Waste %</th><th></th></tr></thead><tbody>
 <template x-for="(row,index) in rows" :key="row.roll_id"><tr :class="index % 2 === 1 ? 'row-even bg-[#f7f9fc]' : 'bg-white'">
 <td><input type="hidden" :name="`rows[${index}][roll_id]`" :value="row.roll_id"><input type="hidden" :name="`rows[${index}][roll_weight_kg]`" :value="row.roll_weight_kg">@if($type === 'neck')<input type="hidden" :name="`rows[${index}][source_body_row_id]`" :value="row.source_body_row_id"><a class="link block" x-show="roll(row).body_job_id" :href="roll(row).body_url" x-text="'Body #' + roll(row).body_job_id + ' → neck'"></a>@endif<span x-text="`${roll(row).number || 'Unavailable batch — remove and select a completed body batch'} / ${roll(row).lot || ''} / ${roll(row).color || ''} / ${roll(row).dia || ''}`"></span><p class="text-danger" x-show="values(row).invalid">Cut weight plus remaining fabric must fit the input weight.</p></td>
 <td class="number" x-text="inputWeight(row)"></td>
 <td>@if($type === 'neck' || $type === 'body' || $type === 'cutting')<x-cutting-quantity :named="true"/>@else<input class="w-28" aria-label="Dozens" type="number" min="0.001" step="0.001" x-model="row.dozens" :name="`rows[${index}][dozens]`">@endif</td>
-<td><input class="w-28" aria-label="Weight per dozen" type="number" min="0.000001" step="0.000001" :placeholder="autoWeight(row)" x-model="row.weight_per_dozen" :name="`rows[${index}][weight_per_dozen]`"><p class="hint" x-show="!String(row.weight_per_dozen ?? '').trim()" x-text="autoWeight(row) + ' ' + row.weight_unit + '/dozen'"></p></td>
+<td>
+    <div class="space-y-1">
+        <input class="w-32 font-mono text-xs font-semibold px-2 py-1 border rounded" aria-label="Weight per dozen" type="number" min="0.000001" step="0.000001" :placeholder="rawAutoWeight(row) || 'Auto'" x-model="row.weight_per_dozen" :name="`rows[${index}][weight_per_dozen]`">
+        <div class="text-[11px] leading-tight">
+            <template x-if="!String(row.weight_per_dozen ?? '').trim() && rawAutoWeight(row)">
+                <span class="inline-flex items-center gap-1 font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    <span class="font-sans text-[10px] uppercase font-bold text-emerald-800">Auto:</span>
+                    <strong x-text="rawAutoWeight(row)"></strong>
+                    <span class="text-muted text-[10px]" x-text="row.weight_unit + '/doz'"></span>
+                </span>
+            </template>
+            <template x-if="String(row.weight_per_dozen ?? '').trim()">
+                <span class="text-accent font-medium">Custom override</span>
+            </template>
+        </div>
+    </div>
+</td>
 <td><select aria-label="Weight unit" x-model="row.weight_unit" :name="`rows[${index}][weight_unit]`"><option value="kg">kg</option><option value="lb">lb</option></select></td>
 <td>@if($type === 'neck')<span class="hint">Body pieces; neck offcuts become scrap</span>@else<input class="w-28" aria-label="Remaining fabric" type="number" min="0" step="0.001" x-model="row.remaining_fabric" :name="`rows[${index}][remaining_fabric]`">@endif</td>
 @foreach(['cut_weight_kg','cutting_scrap_kg','remaining_fabric_kg','waste_kg','waste_percent'] as $key)<td class="number" x-text="values(row).{{ $key }} ?? '-'"></td>@endforeach
 <td><button type="button" class="link" @click="rows.splice(index,1)">Remove</button></td>
-</tr></template></tbody></table></div></section>
+</tr></template></tbody></table></div>
+<div class="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#fafafc] border-t border-line">
+    <div class="text-xs text-muted">
+        <span class="font-bold text-ink" x-text="rows.length + ' {{ $type === 'neck' ? 'batches' : 'rolls' }} configured'"></span>
+        <span> · Save changes immediately here without scrolling down</span>
+    </div>
+    <div class="flex items-center gap-3">
+        <a class="btn btn-secondary btn-sm" href="{{ route('cutting.'.$type.'.index', ($type === 'rib' && ($product ?? '') === 'underpants') ? ['product' => 'underpants'] : []) }}">Cancel</a>
+        <button type="submit" class="btn btn-primary" :disabled="invalid">
+            Save changes
+        </button>
+    </div>
+</div>
+</section>
 <section class="panel"><div class="panel-head"><h2>Summary by lot, color and DIA</h2><span class="hint">Total waste = cutting scrap + remaining fabric.</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Lot / Color / DIA</th>@foreach(config('cutting.labels') as $key=>$label)<th>{{ $type === 'neck' && $key === 'roll_weight_kg' ? 'Body input weight' : $label }}{{ str_ends_with($key,'_kg') ? ', kg' : '' }}</th>@endforeach</tr></thead><tbody><template x-for="(group, gIdx) in summary" :key="group.label"><tr :class="gIdx % 2 === 1 ? 'row-even bg-[#f7f9fc]' : 'bg-white'"><td x-text="group.label"></td>@foreach(config('cutting.labels') as $key=>$label)<td class="number" x-text="group.{{ $key }}"></td>@endforeach</tr></template></tbody></table></div></section>
 @endif
 

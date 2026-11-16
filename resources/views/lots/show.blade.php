@@ -18,6 +18,7 @@
             @endif
             @php
             $stageBadgeClasses = match($lot->current_stage) {
+                'dispatched' => 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
                 'packing' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
                 'sewing' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
                 'cutting' => 'bg-blue-100 text-blue-800 border-blue-300',
@@ -25,6 +26,7 @@
                 default => 'bg-lime-100 text-lime-900 border-lime-300',
             };
             $stageDotClasses = match($lot->current_stage) {
+                'dispatched' => 'bg-emerald-600',
                 'packing' => 'bg-indigo-600',
                 'sewing' => 'bg-emerald-600',
                 'cutting' => 'bg-blue-600',
@@ -34,8 +36,23 @@
             @endphp
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border {{ $stageBadgeClasses }}">
                 <span class="h-1.5 w-1.5 rounded-full {{ $stageDotClasses }}"></span>
-                {{ ucfirst($lot->current_stage) }}
+                {{ $lot->is_dispatched ? 'Dispatched (Finished)' : ucfirst($lot->current_stage) }}
             </span>
+            @if($lot->is_dispatched)
+                <form method="POST" action="{{ route('lots.undispatch', $lot) }}" class="inline">
+                    @csrf
+                    <button type="submit" class="btn btn-secondary btn-xs text-muted hover:text-ink" onclick="return confirm('Reopen lot and revert dispatched status?')">
+                        Reopen Lot
+                    </button>
+                </form>
+            @else
+                <form method="POST" action="{{ route('lots.dispatch', $lot) }}" class="inline">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-xs bg-emerald-700 hover:bg-emerald-800 border-emerald-800 text-white" onclick="return confirm('Mark this lot as Dispatched (production complete)?')">
+                        <x-icon name="check" class="h-3.5 w-3.5 mr-1 inline"/>Dispatch Lot
+                    </button>
+                </form>
+            @endif
         </div>
     </x-page-heading>
 </x-slot>
@@ -478,9 +495,14 @@
             <h2>Packing & Finished Goods</h2>
             <span class="hint">Poly bag, stickers, packets (6 pcs/pkt), and cartons</span>
         </div>
-        @if($lot->packingRows->isNotEmpty())
-            <a class="btn btn-secondary text-xs" href="{{ route('packing-jobs.create') }}">+ Record packing</a>
-        @endif
+        <div class="flex items-center gap-2">
+            <a class="btn btn-secondary text-xs" href="{{ route('lots.packing-materials.index', ['lot_id' => $lot->id]) }}">
+                <x-icon name="package" class="h-3.5 w-3.5 mr-1 inline text-muted"/>Configure Packaging Materials
+            </a>
+            @if($lot->packingRows->isNotEmpty())
+                <a class="btn btn-secondary text-xs" href="{{ route('packing-jobs.create') }}">+ Record packing</a>
+            @endif
+        </div>
     </div>
 
     @php

@@ -131,6 +131,17 @@ class PackingService
                 $job->rows()->delete();
             }
 
+            // Sync lot packing materials if provided in the request
+            if (! empty($data['lot_materials']) && is_array($data['lot_materials'])) {
+                foreach ($data['lot_materials'] as $lotId => $matIds) {
+                    $lot = Lot::find($lotId);
+                    if ($lot) {
+                        $materialIds = array_filter(array_map('intval', (array) $matIds));
+                        $lot->packingMaterials()->sync($materialIds);
+                    }
+                }
+            }
+
             $job->fill([
                 'packing_date' => $data['packing_date'],
                 'staff_id' => $data['staff_id'],
@@ -139,10 +150,10 @@ class PackingService
 
             $availableBatches = $this->getAvailableBatches($job)->keyBy('group_key');
 
-            $sizePieceCounts = [];
-            $totalPiecesAllRows = 0;
-            $totalPacketsAllRows = 0;
-            $totalPacketMaterialsCount = 0;
+            $lotPieces = []; // [lotId => totalPieces]
+            $lotPackets = []; // [lotId => totalPackets]
+            $lotPacketMaterials = []; // [lotId => totalPacketMaterials]
+            $lotSizePieces = []; // [lotId => [size => pieces]]
             $lotIds = [];
 
             foreach ($data['rows'] as $row) {
@@ -190,81 +201,113 @@ class PackingService
                     'rejected_pieces' => $rejectedPieces,
                 ]);
 
-                $sizePieceCounts[$size] = ($sizePieceCounts[$size] ?? 0) + $totalPieces;
-                $totalPiecesAllRows += $totalPieces;
-                $totalPacketsAllRows += $packets;
-                $totalPacketMaterialsCount += $packetMaterials;
+                $lotPieces[$lotId] = ($lotPieces[$lotId] ?? 0) + $totalPieces;
+                $lotPackets[$lotId] = ($lotPackets[$lotId] ?? 0) + $packets;
+                $lotPacketMaterials[$lotId] = ($lotPacketMaterials[$lotId] ?? 0) + $packetMaterials;
+                $lotSizePieces[$lotId][$size] = ($lotSizePieces[$lotId][$size] ?? 0) + $totalPieces;
             }
 
-            // Write stock consumption movements to ledger
-            if ($totalPiecesAllRows > 0) {
-                $date = $job->packing_date->toDateString();
+            // Calculate exact materials required per lot and validate against available stock
+            $materialRequired = []; // [materialId => ['material' => PackingMaterial, 'needed' => int, 'lot_ids' => []]]
 
-                // 1. Poly Bag (1 per piece)
-                $polyBag = PackingMaterial::where('category', 'poly_bag')->where('is_active', true)->first();
-                if ($polyBag) {
-                    $this->ledger->write(
-                        $polyBag,
-                        'packing_consumption',
-                        (string) Decimal::of($totalPiecesAllRows)->negated(),
-                        $date,
-                        $job,
-                        note: "Packed {$totalPiecesAllRows} pieces"
-                    );
+            foreach ($lotPieces as $lotId => $totalPiecesForLot) {
+                if ($totalPiecesForLot <= 0) {
+                    continue;
                 }
 
-                // 2. Size Stickers (1 per piece for each size)
-                foreach ($sizePieceCounts as $sizeCode => $count) {
+                $lot = Lot::with('packingMaterials')->find($lotId);
+                $lotMats = $lot?->packingMaterials->where('is_active', true) ?? collect();
+
+                // If lot has NO assigned materials at all, skip requiring materials for this lot
+                if ($lotMats->isEmpty()) {
+                    continue;
+                }
+
+                // Poly Bag
+                $polyBags = $lotMats->where('category', 'poly_bag');
+                foreach ($polyBags as $pb) {
+                    $materialRequired[$pb->id]['material'] = $pb;
+                    $materialRequired[$pb->id]['needed'] = ($materialRequired[$pb->id]['needed'] ?? 0) + $totalPiecesForLot;
+                    $materialRequired[$pb->id]['lot_numbers'][] = $lot?->lot_number;
+                }
+
+                // Size Stickers
+                $sizeBreakdown = $lotSizePieces[$lotId] ?? [];
+                foreach ($sizeBreakdown as $sizeCode => $count) {
                     if ($count <= 0) {
                         continue;
                     }
-                    $sizeSticker = PackingMaterial::where('category', 'size_sticker')
-                        ->where('size_code', $sizeCode)
-                        ->where('is_active', true)
-                        ->first() ?? PackingMaterial::where('category', 'size_sticker')->where('is_active', true)->first();
-
-                    if ($sizeSticker) {
-                        $this->ledger->write(
-                            $sizeSticker,
-                            'packing_consumption',
-                            (string) Decimal::of($count)->negated(),
-                            $date,
-                            $job,
-                            note: "Size {$sizeCode} sticker for {$count} pieces"
-                        );
+                    $sizeStickers = $lotMats->where('category', 'size_sticker')->where('size_code', $sizeCode);
+                    if ($sizeStickers->isEmpty()) {
+                        $sizeStickers = $lotMats->where('category', 'size_sticker');
+                    }
+                    foreach ($sizeStickers as $ss) {
+                        $materialRequired[$ss->id]['material'] = $ss;
+                        $materialRequired[$ss->id]['needed'] = ($materialRequired[$ss->id]['needed'] ?? 0) + $count;
+                        $materialRequired[$ss->id]['lot_numbers'][] = $lot?->lot_number;
                     }
                 }
 
-                // 3. Other Sticker(s) (1 per piece for each active other sticker)
-                $otherStickers = PackingMaterial::where('category', 'other_sticker')->where('is_active', true)->get();
-                foreach ($otherStickers as $sticker) {
+                // Other Stickers
+                $otherStickers = $lotMats->where('category', 'other_sticker');
+                foreach ($otherStickers as $os) {
+                    $materialRequired[$os->id]['material'] = $os;
+                    $materialRequired[$os->id]['needed'] = ($materialRequired[$os->id]['needed'] ?? 0) + $totalPiecesForLot;
+                    $materialRequired[$os->id]['lot_numbers'][] = $lot?->lot_number;
+                }
+
+                // Packet Material (e.g. master packet box / bag)
+                $pktMatCount = $lotPacketMaterials[$lotId] ?? 0;
+                if ($pktMatCount > 0) {
+                    $pktMaterials = $lotMats->where('category', 'packet_material');
+                    foreach ($pktMaterials as $pm) {
+                        $materialRequired[$pm->id]['material'] = $pm;
+                        $materialRequired[$pm->id]['needed'] = ($materialRequired[$pm->id]['needed'] ?? 0) + $pktMatCount;
+                        $materialRequired[$pm->id]['lot_numbers'][] = $lot?->lot_number;
+                    }
+                }
+            }
+
+            // CRITICAL CHECK: Verify that stock is sufficient. Stop and ask to restock if insufficient!
+            $stockErrors = [];
+            foreach ($materialRequired as $matId => $req) {
+                /** @var PackingMaterial $mat */
+                $mat = $req['material'];
+                $needed = (int) $req['needed'];
+                $availableBalance = (int) Decimal::of($this->ledger->balance($mat))->toInt();
+
+                if ($availableBalance < $needed) {
+                    $shortfall = $needed - $availableBalance;
+                    $stockErrors[] = "Insufficient stock for {$mat->name} ({$mat->category}): needed {$needed} {$mat->unit}, but only {$availableBalance} in stock (short by {$shortfall} {$mat->unit}). Please restock before packing.";
+                }
+            }
+
+            if (! empty($stockErrors)) {
+                throw ValidationException::withMessages([
+                    'materials' => $stockErrors,
+                ]);
+            }
+
+            // Write stock consumption movements to ledger
+            $date = $job->packing_date->toDateString();
+            foreach ($materialRequired as $matId => $req) {
+                /** @var PackingMaterial $mat */
+                $mat = $req['material'];
+                $needed = (int) $req['needed'];
+                if ($needed > 0) {
                     $this->ledger->write(
-                        $sticker,
+                        $mat,
                         'packing_consumption',
-                        (string) Decimal::of($totalPiecesAllRows)->negated(),
+                        (string) Decimal::of($needed)->negated(),
                         $date,
                         $job,
-                        note: "Sticker for {$totalPiecesAllRows} pieces"
+                        note: 'Packed goods consumption for lot(s) '.implode(', ', array_unique($req['lot_numbers'] ?? []))
                     );
-                }
-
-                // 4. Packet Material (1 per packet, including 1 for partial packet if loose pieces exist)
-                if ($totalPacketMaterialsCount > 0) {
-                    $packetMaterial = PackingMaterial::where('category', 'packet_material')->where('is_active', true)->first();
-                    if ($packetMaterial) {
-                        $this->ledger->write(
-                            $packetMaterial,
-                            'packing_consumption',
-                            (string) Decimal::of($totalPacketMaterialsCount)->negated(),
-                            $date,
-                            $job,
-                            note: "Packet material for {$totalPacketsAllRows} full packets and loose pieces ({$totalPacketMaterialsCount} total)"
-                        );
-                    }
                 }
             }
 
             Lot::syncCurrentStageFor(array_unique($lotIds));
+            Lot::checkAutoDispatch(array_unique($lotIds));
 
             return $job;
         });

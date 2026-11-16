@@ -22,8 +22,11 @@ class DashboardController extends Controller
         // Additional manufacturing KPIs and pipeline metrics
         $activePartnersCount = Company::where('is_active', true)->count();
         $totalLotsCount = Lot::count();
-        $availableRollsCount = ReturnedRoll::where('is_available', true)->count();
-        $totalRollsCount = ReturnedRoll::count();
+        $activeLotsCount = Lot::where('is_dispatched', false)->where('current_stage', '!=', 'dispatched')->count();
+        $availableRollsCount = ReturnedRoll::countAvailableForCutting();
+        $totalRollsCount = ReturnedRoll::where('is_available', true)->where(function ($q): void {
+            $q->whereHas('dyeingJob')->orWhereNotNull('lot_id');
+        })->count();
         $cuttingJobsCount = CuttingJob::count();
 
         return view('dashboard', compact(
@@ -33,6 +36,7 @@ class DashboardController extends Controller
             'lots',
             'activePartnersCount',
             'totalLotsCount',
+            'activeLotsCount',
             'availableRollsCount',
             'totalRollsCount',
             'cuttingJobsCount'

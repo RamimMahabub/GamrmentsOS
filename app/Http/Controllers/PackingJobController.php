@@ -124,12 +124,19 @@ class PackingJobController extends Controller
             'balance' => $m->available_stock,
         ]);
 
+        $lots = Lot::with('packingMaterials')->whereIn('id', $available->pluck('lot_id')->unique())->get()->map(fn ($l): array => [
+            'id' => $l->id,
+            'lot_number' => $l->lot_number,
+            'selected_material_ids' => $l->packingMaterials->pluck('id')->all(),
+        ]);
+
         return view('packing.form', [
             'job' => $job,
             'staffs' => Staff::where('is_active', true)->orderBy('name')->get(),
             'available' => $available,
             'rows' => array_values($rows),
             'materials' => $materials,
+            'lots' => $lots,
         ]);
     }
 }

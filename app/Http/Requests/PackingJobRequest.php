@@ -26,6 +26,9 @@ class PackingJobRequest extends FormRequest
             'rows.*.dozens' => ['nullable', new DecimalInput(3, false, '999999999.999')],
             'rows.*.pieces' => ['nullable', 'integer', 'between:0,11'],
             'rows.*.rejected_pieces' => ['nullable', 'integer', 'min:0', 'max:999999999'],
+            'lot_materials' => ['nullable', 'array'],
+            'lot_materials.*' => ['nullable', 'array'],
+            'lot_materials.*.*' => ['integer', Rule::exists('packing_materials', 'id')],
         ];
     }
 }

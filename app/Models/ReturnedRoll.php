@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Decimal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +47,43 @@ class ReturnedRoll extends Model
     public function cuttingRows(): HasMany
     {
         return $this->hasMany(CuttingJobRoll::class, 'roll_id');
+    }
+
+    public function getUsedWeightKg(): string
+    {
+        return Decimal::scale(Decimal::sum(
+            $this->cuttingRows
+                ->whereIn('cutting_type', ['body', 'cutting', 'rib'])
+                ->pluck('roll_weight_kg')
+        ));
+    }
+
+    public function getRemainingWeightKg(): string
+    {
+        $remaining = Decimal::of($this->weight_kg)->minus($this->getUsedWeightKg());
+
+        return $remaining->isNegative() ? '0.000' : Decimal::scale($remaining);
+    }
+
+    public function isCut(): bool
+    {
+        return ! Decimal::of($this->getRemainingWeightKg())->isPositive();
+    }
+
+    public static function countAvailableForCutting(): int
+    {
+        return self::with(['cuttingRows' => fn ($q) => $q->whereIn('cutting_type', ['body', 'cutting', 'rib'])])
+            ->where('is_available', true)
+            ->where(function ($q): void {
+                $q->whereHas('dyeingJob')->orWhereNotNull('lot_id');
+            })
+            ->get()
+            ->filter(function (self $roll): bool {
+                $used = Decimal::sum($roll->cuttingRows->pluck('roll_weight_kg'));
+
+                return Decimal::of($roll->weight_kg)->minus($used)->isPositive();
+            })
+            ->count();
     }
 
     public function getEffectiveLot(): ?Lot

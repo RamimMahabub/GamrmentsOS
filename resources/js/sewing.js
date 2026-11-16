@@ -57,6 +57,17 @@ export function registerSewing(Alpine) {
             }
             return `${pcs} pieces`;
         },
+        cutSummary(item) {
+            if (!item) return '';
+            let cutStr = (item.cut_total_dozens || 0) + ' doz';
+            if (item.cut_total_remainder > 0) cutStr += ' ' + item.cut_total_remainder + ' pcs';
+            let usedStr = (item.used_dozens || 0) + ' doz';
+            if (item.used_remainder > 0) usedStr += ' ' + item.used_remainder + ' pcs';
+            if (item.is_first_step) {
+                return `of ${cutStr} cut · ${usedStr} in sewing/packed`;
+            }
+            return `${usedStr} already processed`;
+        },
         allSelected(items) {
             return items.length > 0 && items.every(item => this.selected(item));
         },

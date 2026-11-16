@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\AuditedModel;
 use App\Support\Decimal;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PackingMaterial extends AuditedModel
@@ -20,6 +21,11 @@ class PackingMaterial extends AuditedModel
     public function movements(): HasMany
     {
         return $this->hasMany(PackingMaterialStockMovement::class);
+    }
+
+    public function lots(): BelongsToMany
+    {
+        return $this->belongsToMany(Lot::class, 'lot_packing_materials');
     }
 
     public function getAvailableStockAttribute(): string

@@ -184,6 +184,7 @@ export function registerCutting(Alpine) {
         remainingQuantity(roll) { try { const remaining = availablePieces(roll).minus(cuttingPieces(this.selectedRow(roll.id))); return remaining.lt('0') ? 'Exceeds available quantity' : quantityText(remaining) + ' remain for later'; } catch { return 'Enter a valid quantity'; } },
         toggle(roll) { if (this.selected(roll.id)) this.rows = this.rows.filter(row => String(row.roll_id) !== String(roll.id)); else this.rows.push(this.newRow(roll)); },
         roll(row) { return this.available.find(roll => String(roll.id) === String(row.roll_id)) || {}; },
+        rawAutoWeight(row) { try { return cuttingRow(row, this.roll(row)).weight_per_dozen; } catch { return ''; } },
         autoWeight(row) { if (String(row.weight_per_dozen ?? '').trim()) return ''; try { return 'Auto: ' + cuttingRow(row, this.roll(row)).weight_per_dozen; } catch { return 'Auto from input weight'; } },
         values(row) { if (this.pending(row)) return {}; try { return cuttingRow(row, this.roll(row)); } catch { return {}; } },
         inputWeight(row) { try { return cuttingInputWeight(row, this.roll(row)); } catch { return '-'; } },

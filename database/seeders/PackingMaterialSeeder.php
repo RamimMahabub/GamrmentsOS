@@ -46,8 +46,8 @@ class PackingMaterialSeeder extends Seeder
                 );
             }
 
-            // 2. Size Stickers (for S, M, L, XL, 2XL, 3XL, 4XL, 5XL - 2,500 each so any size mix is covered)
-            $sizes = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+            // 2. Size Stickers (for S, M, L, XL, 2XL, 3XL, 4XL, 5XL, 6XL, 7XL - 2,500 each so any size mix is covered)
+            $sizes = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL'];
             foreach ($sizes as $size) {
                 $sticker = PackingMaterial::firstOrCreate(
                     ['name' => "Size Sticker - {$size}", 'category' => 'size_sticker', 'size_code' => $size],

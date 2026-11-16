@@ -376,4 +376,21 @@ class SewingWorkflowTest extends TestCase
         $response->assertSee('\u0022pieces\u0022:5', false);
         $response->assertSee('\u0022dozens\u0022:0', false);
     }
+
+    public function test_sando_and_underpants_are_strictly_separated_in_sewing_overview_and_stations(): void
+    {
+        $response = $this->get(route('sewing-jobs.index'));
+        $response->assertOk();
+        // Verifies view receives separated data
+        $response->assertViewHas('sandoOverview');
+        $response->assertViewHas('underpantsOverview');
+        $response->assertViewHas('sandoKpis');
+        $response->assertViewHas('underpantsKpis');
+        $response->assertViewHas('sandoStationPanels');
+        $response->assertViewHas('underpantsStationPanels');
+        // Both workflows have their progress grids and KPI sections separated
+        $response->assertSee('CROTCH OVERLOCK');
+        $response->assertSee('FOLD');
+        $response->assertSee('active: null', false);
+    }
 }

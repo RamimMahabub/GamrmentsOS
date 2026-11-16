@@ -207,6 +207,9 @@ class PackingWorkflowTest extends TestCase
         $this->assertEquals(110, $batch['total_pieces']);
         $this->assertEquals('5XL', $batch['suggested_size']); // DIA 32 is mapped to 5XL
 
+        // Assign packaging materials to lot
+        Lot::find($this->lotId)->packingMaterials()->sync([$polyBag->id, $sizeSticker->id, $otherSticker->id, $packetBag->id]);
+
         // 3. Record Packing Run: pack 110 pieces (9 dozens + 2 pieces)
         // 110 pieces = 18 full packets of 6 (108 pcs) + 2 loose pieces = 19 packet bags consumed
         $job = $service->save([
@@ -302,6 +305,8 @@ class PackingWorkflowTest extends TestCase
             'unit' => 'pcs',
         ]);
         $ledger->write($polyBag, 'purchase', '200', '2026-11-01');
+
+        Lot::find($this->lotId)->packingMaterials()->sync([$polyBag->id]);
 
         // Pack 60 pieces (5 dozens = 10 packets)
         $job = $service->save([

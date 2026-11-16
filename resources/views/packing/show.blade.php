@@ -22,6 +22,48 @@
 
     <div class="space-y-6">
         <!-- Overview Metadata & KPIs -->
+        @php
+            $jobLots = $job->rows->pluck('lot')->unique('id')->filter();
+        @endphp
+        @if($jobLots->isNotEmpty())
+            <div class="panel p-3.5 bg-raised/30 border border-line rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-ink">Lots in this run:</span>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($jobLots as $jLot)
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-line bg-surface font-mono font-medium text-xs">
+                                <a href="{{ route('lots.show', $jLot) }}" class="text-ink hover:underline font-bold">{{ $jLot->lot_number }}</a>
+                                @if($jLot->is_dispatched)
+                                    <span class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Dispatched</span>
+                                @else
+                                    <span class="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-medium">In Packing</span>
+                                @endif
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    @foreach($jobLots as $jLot)
+                        @if($jLot->is_dispatched)
+                            <form method="POST" action="{{ route('lots.undispatch', $jLot) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="btn btn-secondary btn-xs text-[11px]" onclick="return confirm('Reopen lot {{ $jLot->lot_number }}?')">
+                                    Reopen {{ $jLot->lot_number }}
+                                </button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('lots.dispatch', $jLot) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="btn btn-primary btn-xs bg-emerald-700 hover:bg-emerald-800 text-white text-[11px]" onclick="return confirm('Mark lot {{ $jLot->lot_number }} as Dispatched (production complete)?')">
+                                    <x-icon name="check" class="h-3 w-3 mr-1 inline"/>Dispatch {{ $jLot->lot_number }}
+                                </button>
+                            </form>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div class="panel p-5">
                 <span class="text-xs font-semibold uppercase tracking-wider text-muted">Operator</span>

@@ -1,108 +1,80 @@
 <x-app-layout>
     <x-slot name="header">
-        <div>
-            <div class="eyebrow flex items-center gap-2 mb-1">
-                <span class="h-2 w-2 rounded-full bg-accent animate-pulse"></span>
-                Precision Garment Cutting Execution
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-ink">
+                    @if($type === 'rib' && ($product ?? '') === 'underpants')
+                        Underpants Rib Cutting
+                    @elseif($type === 'rib')
+                        Sando Rib Cutting
+                    @elseif($type === 'cutting')
+                        Underpants Cutting
+                    @else
+                        Cutting ({{ ucfirst($type) }})
+                    @endif
+                </h1>
+                <p class="text-xs text-muted">Transform fabric rolls into precision panels, necks, and rib batches.</p>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight text-ink">
-                @if($type === 'rib' && ($product ?? '') === 'underpants')
-                    Underpants Rib Cutting
-                @elseif($type === 'rib')
-                    Sando Rib Cutting
-                @elseif($type === 'cutting')
-                    Underpants Cutting
-                @else
-                    Cutting ({{ ucfirst($type) }})
-                @endif
-            </h1>
-            <p class="text-sm text-muted mt-1">Transform returned fabric rolls into precision body panels, necks, and rib batches.</p>
+            <a class="btn btn-primary btn-xs" href="{{ route('cutting.'.$type.'.create', ($type === 'rib' && ($product ?? '') === 'underpants') ? ['product' => 'underpants'] : []) }}">
+                <x-icon name="plus" class="h-3 w-3"/>
+                Add {{ ($type === 'rib' && ($product ?? '') === 'underpants') ? 'Underpants Rib' : ucfirst($type) }} Job
+            </a>
         </div>
     </x-slot>
 
     <!-- Cutting Workflow Interactive Step Tabs -->
     <x-cutting-flow :type="$type"/>
 
-    <!-- Futuristic Data Panel -->
-    <div class="panel shadow-sm border border-line bg-surface rounded-3xl overflow-hidden">
-        <!-- Executions Header below steps icons -->
-        <div class="px-6 py-4 border-b border-line/70 flex flex-wrap items-center justify-between gap-4 bg-surface">
-            <div>
-                <h2 class="text-base font-bold text-ink">
-                    @if($type === 'rib' && ($product ?? '') === 'underpants')
-                        Underpants Rib Cutting Executions
-                    @elseif($type === 'rib')
-                        Sando Rib Cutting Executions
-                    @elseif($type === 'cutting')
-                        Underpants Cutting Executions
-                    @else
-                        {{ ucfirst($type) }} Cutting Executions
-                    @endif
-                </h2>
-                <p class="text-xs text-muted">
-                    @if($type === 'rib' && ($product ?? '') === 'underpants')
-                        Browse and filter recorded rib cut jobs for Boxer &amp; Underwear lots.
-                    @elseif($type === 'rib')
-                        Browse and filter recorded rib cut jobs for Sando lots.
-                    @else
-                        Browse and filter recorded {{ $type }} cut jobs.
-                    @endif
-                </p>
-            </div>
-            <a class="btn btn-primary shadow-sm shadow-accent/25 text-xs" href="{{ route('cutting.'.$type.'.create', ($type === 'rib' && ($product ?? '') === 'underpants') ? ['product' => 'underpants'] : []) }}">
-                <x-icon name="plus" class="h-3.5 w-3.5"/>
-                Add {{ ($type === 'rib' && ($product ?? '') === 'underpants') ? 'Underpants Rib' : ucfirst($type) }} Cutting Job
-            </a>
-        </div>
-
+    <!-- Data Panel -->
+    <div class="panel shadow-2xs border border-line bg-surface rounded-xl overflow-hidden">
         <!-- Advanced Filter Toolbar -->
-        <div class="px-6 py-5 border-b border-line/70 bg-gradient-to-r from-surface via-raised/40 to-surface">
-            <form class="flex flex-wrap items-center gap-3" method="GET">
+        <div class="px-3.5 py-2 border-b border-line/70 bg-gradient-to-r from-surface via-raised/30 to-surface">
+            <form class="flex flex-wrap items-center gap-2" method="GET">
                 @if(request('product'))
                     <input type="hidden" name="product" value="{{ request('product') }}">
                 @endif
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5">
                     <div class="relative">
                         <label class="sr-only" for="from-date">From Date</label>
-                        <input id="from-date" type="date" name="from" value="{{ request('from') }}" class="text-xs font-semibold py-2 px-3 bg-surface border border-line rounded-xl text-ink focus:border-accent">
+                        <input id="from-date" type="date" name="from" value="{{ request('from') }}" class="text-xs py-1 px-2 bg-surface border border-line rounded-lg text-ink focus:border-accent">
                     </div>
                     <span class="text-xs text-muted">to</span>
                     <div class="relative">
                         <label class="sr-only" for="to-date">To Date</label>
-                        <input id="to-date" type="date" name="to" value="{{ request('to') }}" class="text-xs font-semibold py-2 px-3 bg-surface border border-line rounded-xl text-ink focus:border-accent">
+                        <input id="to-date" type="date" name="to" value="{{ request('to') }}" class="text-xs py-1 px-2 bg-surface border border-line rounded-lg text-ink focus:border-accent">
                     </div>
                 </div>
 
-                <select name="staff_id" class="text-xs font-semibold py-2 px-3 bg-surface border border-line rounded-xl text-ink focus:border-accent cursor-pointer">
+                <select name="staff_id" class="text-xs font-medium py-1 px-2 bg-surface border border-line rounded-lg text-ink focus:border-accent cursor-pointer">
                     <option value="">All Cutting Masters</option>
                     @foreach($staffs as $staff)
                         <option value="{{ $staff->id }}" @selected(request('staff_id')==$staff->id)>{{ $staff->name }}</option>
                     @endforeach
                 </select>
 
-                <select name="lot_id" class="text-xs font-semibold py-2 px-3 bg-surface border border-line rounded-xl text-ink focus:border-accent cursor-pointer">
+                <select name="lot_id" class="text-xs font-medium py-1 px-2 bg-surface border border-line rounded-lg text-ink focus:border-accent cursor-pointer">
                     <option value="">All Lots</option>
                     @foreach($lots as $lot)
                         <option value="{{ $lot->id }}" @selected(request('lot_id')==$lot->id)>{{ $lot->lot_number }}</option>
                     @endforeach
                 </select>
 
-                <select name="color" class="text-xs font-semibold py-2 px-3 bg-surface border border-line rounded-xl text-ink focus:border-accent cursor-pointer">
+                <select name="color" class="text-xs font-medium py-1 px-2 bg-surface border border-line rounded-lg text-ink focus:border-accent cursor-pointer">
                     <option value="">All Colors</option>
                     @foreach($colors as $color)
                         <option value="{{ $color }}" @selected(request('color')===$color)>{{ $color }}</option>
                     @endforeach
                 </select>
 
-                <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-ink text-surface hover:bg-neutral-800 transition shadow-sm">
-                    <x-icon name="sliders" class="h-3.5 w-3.5 text-[#d5ff27]"/>
+                <button type="submit" class="btn btn-secondary btn-xs">
+                    <x-icon name="sliders" class="h-3 w-3 text-accent"/>
                     Filter
                 </button>
                 @if(request()->hasAny(['from', 'to', 'staff_id', 'lot_id', 'color']))
-                    <a href="{{ route('cutting.'.$type.'.index') }}" class="text-xs text-muted hover:text-ink font-medium px-2 py-1">Reset</a>
+                    <a href="{{ route('cutting.'.$type.'.index') }}" class="text-xs text-muted hover:text-ink font-medium px-1.5">Reset</a>
                 @endif
             </form>
-            <p class="text-[11px] text-muted mt-3 flex items-center gap-1.5">
+            <p class="text-[10px] text-muted mt-1.5 flex items-center gap-1">
                 <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
                 Totals aggregate all rolls in selected cut executions. Remaining fabric is counted towards total process scrap.
             </p>
@@ -113,22 +85,22 @@
             <table class="data-table">
                 <thead>
                     <tr class="border-b border-line">
-                        <th class="w-12 text-center text-[10px] font-mono tracking-widest text-muted uppercase">#</th>
-                        <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Execution Date</th>
-                        <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Cutting Master</th>
-                        <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Lots & Colors</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Rolls</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Dozens Cut</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Cut Weight (KG)</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Scrap (KG)</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Waste (KG)</th>
-                        <th class="number pr-6 text-[10px] font-bold tracking-widest text-muted uppercase">Actions</th>
+                        <th class="w-10 text-center font-mono">#</th>
+                        <th>Execution Date</th>
+                        <th>Cutting Master</th>
+                        <th>Lots & Colors</th>
+                        <th class="number">Rolls</th>
+                        <th class="number">Dozens Cut</th>
+                        <th class="number">Cut Weight (KG)</th>
+                        <th class="number">Scrap (KG)</th>
+                        <th class="number">Waste (KG)</th>
+                        <th class="number pr-4">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#e2e4ea]">
+                <tbody class="divide-y divide-[#e4e6ec]">
                     @forelse($jobs as $index => $job)
                         @php $totals = \App\Support\CuttingTotals::sum($job->rows); @endphp
-                        <tr class="group transition-all duration-150 hover:bg-[#edf3dc] even:bg-[#f7f9fc]">
+                        <tr class="group transition-all duration-120 hover:bg-[#edf3dc] even:bg-[#f8f9fc]">
                             <!-- Index -->
                             <td class="text-center font-mono text-xs text-muted/80">
                                 {{ str_pad((string)($jobs->firstItem() + $index), 2, '0', STR_PAD_LEFT) }}
@@ -136,7 +108,7 @@
 
                             <!-- Date -->
                             <td class="whitespace-nowrap">
-                                <a class="font-bold text-ink text-xs hover:text-accent transition inline-flex items-center gap-1.5" href="{{ route('cutting.'.$type.'.show', $job) }}">
+                                <a class="font-bold text-ink text-xs hover:text-accent transition inline-flex items-center gap-1" href="{{ route('cutting.'.$type.'.show', $job) }}">
                                     {{ $job->cutting_date->format('d M Y') }}
                                 </a>
                             </td>
@@ -144,7 +116,7 @@
                             <!-- Staff -->
                             <td>
                                 <a class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-accent transition" href="{{ route('staffs.show', $job->staff) }}">
-                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-raised text-muted font-bold text-[10px]">
+                                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-raised text-muted font-bold text-[10px]">
                                         {{ strtoupper(substr($job->staff->name, 0, 1)) }}
                                     </span>
                                     {{ $job->staff->name }}
@@ -158,68 +130,68 @@
 
                             <!-- Rolls -->
                             <td class="number">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg bg-surface border border-line font-mono text-xs font-bold text-ink shadow-2xs">
+                                <span class="pill font-mono text-xs font-bold">
                                     {{ $job->rows->count() }}
                                 </span>
                                 @if($totals['pending_count'])
-                                    <div class="text-[10px] text-amber-600 font-medium mt-0.5">{{ $totals['pending_count'] }} pending</div>
+                                    <span class="text-[10px] text-amber-600 font-medium ml-1">({{ $totals['pending_count'] }} pend)</span>
                                 @endif
                             </td>
 
                             <!-- Dozens -->
                             <td class="number">
-                                <div class="font-bold tabular-nums text-ink text-sm">
+                                <span class="font-bold tabular-nums text-ink text-xs">
                                     {{ $totals['completed_count'] ? $totals['dozens'] : '—' }}
-                                </div>
+                                </span>
                             </td>
 
                             <!-- Cut Weight -->
                             <td class="number">
-                                <div class="font-bold tabular-nums text-ink text-sm">
+                                <span class="font-bold tabular-nums text-ink text-xs">
                                     {{ $totals['completed_count'] ? $totals['cut_weight_kg'] : '—' }}
-                                    @if($totals['completed_count'])<span class="text-[10px] font-normal text-muted">kg</span>@endif
-                                </div>
+                                </span>
+                                @if($totals['completed_count'])<span class="text-[10px] text-muted">kg</span>@endif
                             </td>
 
                             <!-- Scrap -->
                             <td class="number">
-                                <div class="tabular-nums text-muted text-xs">
+                                <span class="tabular-nums text-muted text-xs">
                                     {{ $totals['completed_count'] ? $totals['cutting_scrap_kg'] : '—' }}
-                                </div>
+                                </span>
                             </td>
 
                             <!-- Total Waste -->
                             <td class="number">
-                                <div class="tabular-nums font-semibold text-rose-700 text-xs">
+                                <span class="tabular-nums font-semibold text-rose-700 text-xs">
                                     {{ $totals['completed_count'] ? $totals['waste_kg'] : '—' }}
-                                </div>
+                                </span>
                             </td>
 
                             <!-- Actions -->
-                            <td class="number whitespace-nowrap pr-6">
-                                <div class="inline-flex items-center gap-1.5">
-                                    <a class="inline-flex items-center px-3 py-1.5 rounded-xl border border-line bg-surface text-xs font-semibold text-ink hover:border-accent hover:text-accent shadow-2xs transition" href="{{ route('cutting.'.$type.'.show', $job) }}">
+                            <td class="number whitespace-nowrap pr-4">
+                                <div class="inline-flex items-center gap-1">
+                                    <a class="btn btn-secondary btn-xs" href="{{ route('cutting.'.$type.'.show', $job) }}">
                                         View
                                     </a>
-                                    <a class="inline-flex items-center justify-center h-8 w-8 rounded-xl border border-line bg-surface text-muted hover:text-ink hover:border-muted transition shadow-2xs" href="{{ route('cutting.'.$type.'.edit', $job) }}" title="Edit cutting job">
-                                        <x-icon name="pen" class="h-3.5 w-3.5"/>
+                                    <a class="btn btn-secondary btn-xs !px-1.5 text-muted hover:text-ink" href="{{ route('cutting.'.$type.'.edit', $job) }}" title="Edit job">
+                                        <x-icon name="pen" class="h-3 w-3"/>
                                     </a>
-                                    <x-delete-button :action="route('cutting.'.$type.'.destroy', $job)" label="Delete job" icon="trash" class="inline-flex items-center justify-center h-8 w-8 rounded-xl border border-rose-200 bg-rose-50/70 text-rose-600 hover:bg-rose-100 hover:border-rose-300 transition shadow-2xs cursor-pointer"/>
+                                    <x-delete-button :action="route('cutting.'.$type.'.destroy', $job)" label="Delete job" icon="trash" class="btn btn-danger btn-xs !px-1.5 cursor-pointer"/>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="empty py-20 text-center">
-                                <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-accent-soft text-accent-ink mb-4 shadow-sm">
-                                    <x-icon name="scissors" class="h-8 w-8"/>
+                            <td colspan="10" class="empty py-12 text-center">
+                                <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent-ink mb-2">
+                                    <x-icon name="scissors" class="h-5 w-5"/>
                                 </div>
-                                <h3 class="text-lg font-bold text-ink">No cutting jobs found.</h3>
-                                <p class="text-xs text-muted mt-1 max-w-sm mx-auto">Select returned fabric rolls from your inventory to begin your first cutting batch execution.</p>
-                                <div class="mt-5">
-                                    <a href="{{ route('cutting.'.$type.'.create') }}" class="btn btn-primary shadow-sm shadow-accent/25">
-                                        <x-icon name="plus" class="h-4 w-4"/>
-                                        Add First Cutting Job
+                                <h3 class="text-sm font-bold text-ink">No cutting jobs found.</h3>
+                                <p class="text-xs text-muted mt-0.5">Start cutting body panels from available returned fabric rolls.</p>
+                                <div class="mt-3">
+                                    <a href="{{ route('cutting.'.$type.'.create') }}" class="btn btn-primary">
+                                        <x-icon name="plus" class="h-3.5 w-3.5"/>
+                                        Record First Cut
                                     </a>
                                 </div>
                             </td>
@@ -229,7 +201,7 @@
             </table>
         </div>
 
-        <div class="p-5 border-t border-line/60 bg-raised/30">
+        <div class="px-3.5 py-2 border-t border-line/60 bg-raised/30">
             {{ $jobs->links('components.pagination') }}
         </div>
     </div>

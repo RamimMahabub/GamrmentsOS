@@ -5,10 +5,35 @@
         </x-page-heading>
     </x-slot>
 
-    <form method="POST" action="{{ $job->exists ? route('packing-jobs.update', $job) : route('packing-jobs.store') }}" x-data="packingForm(@js(['available' => $available, 'rows' => $rows, 'materials' => $materials]))" class="space-y-6">
+    <form method="POST" action="{{ $job->exists ? route('packing-jobs.update', $job) : route('packing-jobs.store') }}" x-data="packingForm(@js(['available' => $available, 'rows' => $rows, 'materials' => $materials, 'lots' => $lots ?? []]))" class="space-y-6">
         @csrf
         @if($job->exists)
             @method('PUT')
+        @endif
+
+        @if($errors->has('materials'))
+            <div class="rounded-xl border border-rose-300 bg-rose-50 p-4 text-xs text-rose-800">
+                <div class="font-bold text-sm mb-1 flex items-center gap-1.5">
+                    <x-icon name="alert" class="h-4 w-4 text-rose-600"/>
+                    Packaging Materials Shortage — Please Restock Before Packing
+                </div>
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach($errors->get('materials') as $msg)
+                        @if(is_array($msg))
+                            @foreach($msg as $subMsg)
+                                <li>{{ $subMsg }}</li>
+                            @endforeach
+                        @else
+                            <li>{{ $msg }}</li>
+                        @endif
+                    @endforeach
+                </ul>
+                <div class="mt-3">
+                    <a href="{{ route('packing-materials.index') }}" class="btn btn-secondary btn-xs font-semibold">
+                        Go to Packaging Materials Inventory &rarr;
+                    </a>
+                </div>
+            </div>
         @endif
 
         <!-- Meta Header: Date, Staff, Notes -->
@@ -30,6 +55,59 @@
                 <span>Notes</span>
                 <textarea name="notes" placeholder="Optional packaging notes...">{{ old('notes', $job->notes) }}</textarea>
             </label>
+        </section>
+
+        <!-- Lot Packaging Material Configuration -->
+        <section class="panel p-5 bg-[#fafafa] border border-line rounded-xl" x-show="lotsMeta.length > 0">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                    <h3 class="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                        <x-icon name="package" class="h-3.5 w-3.5 text-accent"/>
+                        Lot-Specific Packaging Materials
+                    </h3>
+                    <p class="text-[11px] text-muted">Select the specific packaging materials used for each lot below. Once configured, selecting batches from the lot automatically requires these materials.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('lots.packing-materials.index') }}" class="btn btn-secondary btn-xs font-semibold">
+                        <x-icon name="layers" class="h-3 w-3 mr-1 inline text-muted"/>Manage All Lots Materials &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <template x-for="l in lotsMeta" :key="l.id">
+                    <div class="p-3 bg-surface border border-line rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-mono font-bold text-xs text-ink flex items-center gap-2">
+                                <span class="h-2 w-2 rounded-full bg-accent"></span>
+                                Lot: <span x-text="l.lot_number"></span>
+                            </span>
+                            <span class="text-[10px] text-muted font-medium" x-text="(l.selected_material_ids?.length || 0) + ' materials assigned'"></span>
+                        </div>
+                        <template x-if="materials.length === 0">
+                            <div class="p-3 rounded border border-dashed border-line text-xs text-muted flex items-center justify-between">
+                                <span>No packaging materials registered yet.</span>
+                                <a href="{{ route('packing-materials.create') }}" class="btn btn-secondary btn-xs font-semibold">+ Add Material</a>
+                            </div>
+                        </template>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" x-show="materials.length > 0">
+                            <template x-for="m in materials" :key="m.id">
+                                <label class="flex items-center gap-2 p-1.5 rounded border border-line/80 bg-raised/30 hover:bg-surface cursor-pointer text-xs">
+                                    <input type="checkbox" :name="`lot_materials[${l.id}][]`" :value="m.id" :checked="l.selected_material_ids?.includes(m.id)" @change="toggleLotMaterial(l, m.id, $event.target.checked)">
+                                    <div class="truncate">
+                                        <div class="font-semibold text-ink truncate text-[11px]" x-text="m.name"></div>
+                                        <div class="text-[10px] text-muted">
+                                            <span x-text="m.category.replace('_', ' ')"></span>
+                                            <span x-show="m.size_code" x-text="' (' + m.size_code + ')'"></span>
+                                            · <span :class="Number(m.balance || 0) <= 0 ? 'text-rose-600 font-bold' : 'text-emerald-700'" x-text="m.balance + ' in stock'"></span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
         </section>
 
         <!-- Packing Stage Panel -->
@@ -200,18 +278,33 @@
             </div>
 
             <!-- Bottom Save Action Bar -->
-            <div class="flex items-center justify-between p-4 bg-[#fafafc] border-t border-line">
-                <div class="text-xs text-muted">
-                    <span class="font-bold text-ink" x-text="rows.length + ' batches selected'"></span>
-                    <span x-show="totalPackedPieces > 0">
-                        · Total to pack: <strong class="text-accent text-sm" x-text="totalPackedPieces.toLocaleString() + ' pieces (' + totalPackets + ' packets)'"></strong>
-                    </span>
+            <div class="p-4 bg-[#fafafc] border-t border-line space-y-2">
+                <div x-show="hasMaterialShortage" class="rounded-lg bg-rose-50 border border-rose-300 p-3 text-xs text-rose-800">
+                    <strong class="font-bold flex items-center gap-1.5">
+                        <x-icon name="alert" class="h-4 w-4 text-rose-600"/>
+                        Cannot pack items: Packaging materials out of stock or insufficient!
+                    </strong>
+                    <div class="mt-1" x-text="materialShortageMessage"></div>
+                    <div class="mt-1.5">
+                        <a href="{{ route('packing-materials.index') }}" target="_blank" class="underline font-bold text-rose-900">
+                            Restock materials in inventory &rarr;
+                        </a>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <a class="btn btn-secondary" href="{{ route('packing-jobs.index') }}">Cancel</a>
-                    <button class="btn btn-primary" :disabled="!rows.length || totalPackedPieces === 0">
-                        {{ $job->exists ? 'Update Packing Job' : 'Complete & Save Packing' }}
-                    </button>
+
+                <div class="flex items-center justify-between">
+                    <div class="text-xs text-muted">
+                        <span class="font-bold text-ink" x-text="rows.length + ' batches selected'"></span>
+                        <span x-show="totalPackedPieces > 0">
+                            · Total to pack: <strong class="text-accent text-sm" x-text="totalPackedPieces.toLocaleString() + ' pieces (' + totalPackets + ' packets)'"></strong>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a class="btn btn-secondary" href="{{ route('packing-jobs.index') }}">Cancel</a>
+                        <button class="btn btn-primary" :disabled="!rows.length || totalPackedPieces === 0 || hasMaterialShortage">
+                            {{ $job->exists ? 'Update Packing Job' : 'Complete & Save Packing' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -223,10 +316,134 @@
                 available: config.available || [],
                 rows: config.rows || [],
                 materials: config.materials || [],
+                lotsMeta: config.lots || [],
                 search: '',
                 lotFilter: '',
                 diaFilter: '',
                 colorFilter: '',
+
+                toggleLotMaterial(lotMeta, matId, checked) {
+                    if (!lotMeta.selected_material_ids) {
+                        lotMeta.selected_material_ids = [];
+                    }
+                    if (checked && !lotMeta.selected_material_ids.includes(matId)) {
+                        lotMeta.selected_material_ids.push(matId);
+                    } else if (!checked) {
+                        lotMeta.selected_material_ids = lotMeta.selected_material_ids.filter(id => id !== matId);
+                    }
+                },
+
+                get requiredMaterials() {
+                    const req = {}; // { matId: { material, needed } }
+                    if (!this.rows.length) return req;
+
+                    const lotPieces = {};
+                    const lotPackets = {};
+                    const lotPacketMats = {};
+                    const lotSizePieces = {};
+
+                    this.rows.forEach(r => {
+                        const batch = this.available.find(b => b.group_key === r.group_key);
+                        const lotId = batch ? batch.lot_id : (r.group_key ? parseInt(r.group_key.split(':')[0]) : null);
+                        if (!lotId) return;
+
+                        const pcs = (Number(r.dozens) || 0) * 12 + (Number(r.pieces) || 0);
+                        if (pcs <= 0) return;
+
+                        const pkts = Math.floor(pcs / 6);
+                        const loose = pcs % 6;
+                        const pktMats = pkts + (loose > 0 ? 1 : 0);
+                        const size = r.size || (batch ? batch.suggested_size : 'Unspecified');
+
+                        lotPieces[lotId] = (lotPieces[lotId] || 0) + pcs;
+                        lotPackets[lotId] = (lotPackets[lotId] || 0) + pkts;
+                        lotPacketMats[lotId] = (lotPacketMats[lotId] || 0) + pktMats;
+                        if (!lotSizePieces[lotId]) lotSizePieces[lotId] = {};
+                        lotSizePieces[lotId][size] = (lotSizePieces[lotId][size] || 0) + pcs;
+                    });
+
+                    Object.keys(lotPieces).forEach(lotIdStr => {
+                        const lotId = parseInt(lotIdStr);
+                        const totalPcs = lotPieces[lotId];
+                        const lotMeta = this.lotsMeta.find(l => l.id === lotId);
+                        const assignedIds = lotMeta && lotMeta.selected_material_ids ? lotMeta.selected_material_ids : [];
+
+                        // If user has not assigned any materials to this lot yet, don't invent required materials
+                        if (!assignedIds.length) {
+                            return;
+                        }
+
+                        // Poly Bag
+                        let polyBags = this.materials.filter(m => m.category === 'poly_bag' && assignedIds.includes(m.id));
+                        polyBags.forEach(pb => {
+                            if (!req[pb.id]) req[pb.id] = { material: pb, needed: 0 };
+                            req[pb.id].needed += totalPcs;
+                        });
+
+                        // Size Stickers
+                        const sizes = lotSizePieces[lotId] || {};
+                        Object.keys(sizes).forEach(sizeCode => {
+                            const count = sizes[sizeCode];
+                            if (count <= 0) return;
+
+                            let stickers = this.materials.filter(m => m.category === 'size_sticker' && m.size_code === sizeCode && assignedIds.includes(m.id));
+                            if (!stickers.length) {
+                                stickers = this.materials.filter(m => m.category === 'size_sticker' && assignedIds.includes(m.id));
+                            }
+                            stickers.forEach(s => {
+                                if (!req[s.id]) req[s.id] = { material: s, needed: 0 };
+                                req[s.id].needed += count;
+                            });
+                        });
+
+                        // Other Stickers
+                        let otherStickers = this.materials.filter(m => m.category === 'other_sticker' && assignedIds.includes(m.id));
+                        otherStickers.forEach(os => {
+                            if (!req[os.id]) req[os.id] = { material: os, needed: 0 };
+                            req[os.id].needed += totalPcs;
+                        });
+
+                        // Packet Material
+                        const pMatsNeeded = lotPacketMats[lotId] || 0;
+                        if (pMatsNeeded > 0) {
+                            let pktMats = this.materials.filter(m => m.category === 'packet_material' && assignedIds.includes(m.id));
+                            pktMats.forEach(pm => {
+                                if (!req[pm.id]) req[pm.id] = { material: pm, needed: 0 };
+                                req[pm.id].needed += pMatsNeeded;
+                            });
+                        }
+                    });
+
+                    return req;
+                },
+
+                get materialShortages() {
+                    const shortages = [];
+                    const req = this.requiredMaterials;
+                    Object.keys(req).forEach(matId => {
+                        const item = req[matId];
+                        const available = Number(item.material.balance || 0);
+                        if (available < item.needed) {
+                            shortages.push({
+                                name: item.material.name,
+                                category: item.material.category.replace('_', ' '),
+                                needed: item.needed,
+                                available: available,
+                                shortfall: item.needed - available,
+                            });
+                        }
+                    });
+                    return shortages;
+                },
+
+                get hasMaterialShortage() {
+                    return this.materialShortages.length > 0;
+                },
+
+                get materialShortageMessage() {
+                    if (!this.hasMaterialShortage) return '';
+                    return this.materialShortages.map(s => `${s.name} (${s.category}): needs ${s.needed}, only ${s.available} in stock (shortfall: ${s.shortfall})`).join('; ');
+                },
 
                 get lots() {
                     return [...new Set(this.available.map(r => r.lot))].sort();
