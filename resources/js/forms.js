@@ -87,35 +87,56 @@ Alpine.data('knittingForm', initial => ({
     setOutput(row) {
         const outVal = row.outputDisplay;
         if (!outVal || isNaN(Number(outVal)) || Number(outVal) < 0) return;
-        const yarns = this.selectedYarns();
-        if (!yarns.length) return;
-
-        // Calculate required input: input = output / (1 - waste/100)
-        const wasteP = safe(() => decimal(row.waste_percent)) ?? new Big('0');
-        if (wasteP.gte('100')) return;
-        const factor = new Big('1').minus(wasteP.div('100'));
-        const targetInputKg = new Big(String(outVal)).div(factor);
-
-        if (yarns.length === 1) {
-            const yarn = yarns[0];
-            row.quantities[yarn.id] = targetInputKg.toFixed(3, 1);
-            this.refreshCell(row, yarn);
-            this.reconcileYarn(yarn);
+        const inputKg = this.rowInput(row);
+        if (inputKg && safe(() => new Big(inputKg).gt('0'))) {
+            // Both input and output exist: calculate the actual waste %
+            const computedWaste = safe(() => waste(inputKg, outVal));
+            if (computedWaste !== null) {
+                row.waste_percent = computedWaste;
+            }
         } else {
-            // Distribute proportionally or equally
-            const currentTotal = safe(() => new Big(sum(Object.values(row.quantities)))) ?? new Big('0');
-            yarns.forEach(yarn => {
-                let share;
-                if (currentTotal.gt('0')) {
-                    share = new Big(row.quantities[yarn.id] || '0').div(currentTotal);
-                } else {
-                    share = new Big('1').div(yarns.length);
-                }
-                row.quantities[yarn.id] = targetInputKg.times(share).toFixed(3, 1);
+            // No input yet: infer input using existing waste %
+            const yarns = this.selectedYarns();
+            if (!yarns.length) return;
+            const wasteP = safe(() => decimal(row.waste_percent)) ?? new Big('0');
+            if (wasteP.gte('100')) return;
+            const factor = new Big('1').minus(wasteP.div('100'));
+            const targetInputKg = new Big(String(outVal)).div(factor);
+
+            if (yarns.length === 1) {
+                const yarn = yarns[0];
+                row.quantities[yarn.id] = targetInputKg.toFixed(3, 1);
                 this.refreshCell(row, yarn);
                 this.reconcileYarn(yarn);
-            });
+            } else {
+                const currentTotal = safe(() => new Big(sum(Object.values(row.quantities)))) ?? new Big('0');
+                yarns.forEach(yarn => {
+                    let share = currentTotal.gt('0')
+                        ? new Big(row.quantities[yarn.id] || '0').div(currentTotal)
+                        : new Big('1').div(yarns.length);
+                    row.quantities[yarn.id] = targetInputKg.times(share).toFixed(3, 1);
+                    this.refreshCell(row, yarn);
+                    this.reconcileYarn(yarn);
+                });
+            }
         }
+    },
+    setWaste(row, val) {
+        row.waste_percent = String(val);
+        const input = this.rowInput(row);
+        if (input !== null && input !== undefined && safe(() => new Big(input).gt('0'))) {
+            const out = safe(() => output(input, row.waste_percent));
+            row.outputDisplay = out !== null ? format(out) : '';
+        }
+    },
+    rowWasteKg(row) {
+        const input = this.rowInput(row);
+        const out = row.outputDisplay || this.rowOutput(row);
+        if (input === null || out === null || out === '' || isNaN(Number(out))) return null;
+        return safe(() => {
+            const diff = new Big(String(input)).minus(String(out));
+            return diff.toFixed(3, 1);
+        });
     },
     reconcileYarn(yarn) {
         if (!yarn) return;
@@ -169,9 +190,11 @@ Alpine.data('knittingForm', initial => ({
     rowOutput(row) { const input = this.rowInput(row); return input === null ? null : safe(() => output(input, row.waste_percent)); },
     totals() {
         const input = safe(() => sum(this.rows.map(r => this.rowInput(r))));
-        const outputs = this.rows.map(r => this.rowOutput(r));
-        const out = outputs.includes(null) ? null : safe(() => sum(outputs));
-        return {input, output: out, waste: input !== null && out !== null ? safe(() => waste(input, out)) : null};
+        const outputs = this.rows.map(r => r.outputDisplay || this.rowOutput(r)).filter(v => v !== null && v !== '' && !isNaN(Number(v)));
+        const out = outputs.length === this.rows.length ? safe(() => sum(outputs)) : null;
+        const wastePercent = input !== null && out !== null ? safe(() => waste(input, out)) : null;
+        const wasteKg = input !== null && out !== null ? safe(() => new Big(String(input)).minus(String(out)).toFixed(3, 1)) : null;
+        return {input, output: out, waste: wastePercent, wasteKg};
     },
     bags(row, yarn) { return yarn.bagKg ? format(safe(() => new Big(row.quantities[yarn.id]).div(yarn.bagKg).toString()), 2, true) : null; },
     async previewLot() {

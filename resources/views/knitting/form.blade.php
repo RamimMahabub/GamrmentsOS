@@ -18,9 +18,26 @@
 <td class="number">
 <input type="text" inputmode="decimal" x-model="row.outputDisplay" @input="setOutput(row)" class="text-right font-semibold text-accent" :aria-label="'Fabric output for DIA '+row.dia" style="min-width:90px;max-width:110px">
 </td>
-<td><div class="mb-2 flex gap-2"><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="row.waste_percent='0'">0%</button><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="row.waste_percent='1'">1%</button></div><div class="flex items-center gap-2"><input type="text" inputmode="decimal" :name="'rows['+i+'][waste_percent]'" x-model="row.waste_percent" :aria-label="'Waste percent for DIA '+row.dia" required style="min-width:65px;max-width:80px"><span class="hint">%</span></div></td>
+<td>
+<div class="mb-2 flex gap-2"><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="setWaste(row,'0')">0%</button><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="setWaste(row,'1')">1%</button></div>
+<div class="flex items-center gap-2">
+<input type="text" inputmode="decimal" :name="'rows['+i+'][waste_percent]'" x-model="row.waste_percent" @input="setWaste(row, row.waste_percent)" :aria-label="'Waste percent for DIA '+row.dia" required style="min-width:65px;max-width:80px">
+<span class="hint">%</span>
+</div>
+<div class="hint mt-1 text-[11px]" x-show="rowWasteKg(row) !== null">
+<span class="text-neutral-500">Loss: </span><span class="font-medium text-neutral-700" x-text="format(rowWasteKg(row)) + ' kg'"></span>
+</div>
+</td>
 </tr></template>
-</tbody><tfoot><tr><td :colspan="selected.length+1">Shipment total</td><td class="number" x-text="format(totals().input)"></td><td class="number" x-text="format(totals().output)"></td><td x-text="totals().waste===null ? '—' : format(totals().waste,2)+'%'"></td></tr></tfoot></table></div><p class="px-6 py-4 text-xs text-muted">Fabric output is always in kg. Your final lot number is assigned when you save.@if($job->exists) The existing lot number stays unchanged.@endif</p>
+</tbody><tfoot><tr>
+<td :colspan="selected.length+1">Shipment total</td>
+<td class="number font-semibold" x-text="format(totals().input)"></td>
+<td class="number font-semibold" x-text="format(totals().output)"></td>
+<td>
+<span class="font-semibold" x-text="totals().waste===null ? '—' : format(totals().waste,2)+'%'"></span>
+<span class="ml-2 text-xs text-neutral-500" x-show="totals().wasteKg !== null" x-text="'(' + format(totals().wasteKg) + ' kg)'"></span>
+</td>
+</tr></tfoot></table></div><p class="px-6 py-4 text-xs text-muted">Fabric output is always in kg. Your final lot number is assigned when you save.@if($job->exists) The existing lot number stays unchanged.@endif</p>
 </section>
 <section class="panel"><div class="grid gap-6 p-6 sm:grid-cols-2"><label class="field">Delivery date (optional)<input name="delivery_date" type="date" value="{{ old('delivery_date',$job->delivery_date?->format('Y-m-d')) }}" :min="date"></label><label class="field">Notes (optional)<textarea name="notes" rows="2">{{ old('notes',$job->notes) }}</textarea></label></div></section>
 <div class="flex justify-end gap-3"><a class="btn btn-secondary" href="{{ route('knitting-jobs.index') }}">Cancel</a><button class="btn btn-primary" :disabled="!selected.length">{{ $job->exists ? 'Save shipment changes' : 'Assign shipment' }}</button></div>
