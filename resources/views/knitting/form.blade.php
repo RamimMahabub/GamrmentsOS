@@ -16,7 +16,7 @@
 </td></template>
 <td class="number" x-text="format(rowInput(row))"></td>
 <td class="number">
-<input type="text" inputmode="decimal" x-model="row.outputDisplay" @input="setOutput(row)" class="text-right font-semibold text-accent" :aria-label="'Fabric output for DIA '+row.dia" style="min-width:90px;max-width:110px">
+<input type="text" inputmode="decimal" :name="'rows['+i+'][output_fabric_kg]'" x-model="row.outputDisplay" @input="setOutput(row)" class="text-right font-semibold text-accent" :aria-label="'Fabric output for DIA '+row.dia" style="min-width:90px;max-width:110px">
 </td>
 <td>
 <div class="mb-2 flex gap-2"><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="setWaste(row,'0')">0%</button><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="setWaste(row,'1')">1%</button></div>

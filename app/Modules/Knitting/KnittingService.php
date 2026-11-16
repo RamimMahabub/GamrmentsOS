@@ -52,8 +52,22 @@ final class KnittingService
                 if (! D::of($input)->isPositive()) {
                     throw ValidationException::withMessages(['rows.'.$index => 'Each DIA needs a positive yarn input.']);
                 }
-                $computed[] = ['dia' => (int) $row['dia'], 'input_kg' => $input, 'waste_percent' => D::scale($row['waste_percent'], 2),
-                    'output_fabric_kg' => WasteCalculator::output($input, $row['waste_percent']), 'sort_order' => $index, 'quantities' => $quantities];
+
+                $output = null;
+                $waste = null;
+                if (! empty($row['output_fabric_kg']) && is_numeric($row['output_fabric_kg'])) {
+                    $output = D::scale($row['output_fabric_kg']);
+                    $waste = WasteCalculator::percent($input, $output) ?? '0.00';
+                } elseif (isset($row['waste_percent']) && is_numeric($row['waste_percent'])) {
+                    $waste = D::scale($row['waste_percent'], 2);
+                    $output = WasteCalculator::output($input, $waste);
+                } else {
+                    $waste = '0.00';
+                    $output = $input;
+                }
+
+                $computed[] = ['dia' => (int) $row['dia'], 'input_kg' => $input, 'waste_percent' => $waste,
+                    'output_fabric_kg' => $output, 'sort_order' => $index, 'quantities' => $quantities];
             }
             if ($job->exists) {
                 $used = $this->fabric->consumed($lot);

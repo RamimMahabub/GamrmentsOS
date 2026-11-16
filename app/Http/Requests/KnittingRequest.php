@@ -14,7 +14,9 @@ class KnittingRequest extends ManufacturingRequest
             'delivery_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:entry_date'], 'input_unit' => ['required', Rule::in(['lb', 'kg'])],
             'rate_per_kg' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:10000'], 'rows' => ['required', 'array', 'min:1', 'max:100'],
-            'rows.*.dia' => ['required', 'integer', 'min:1', 'max:1000', 'distinct'], 'rows.*.waste_percent' => ['required', new DecimalInput(2, false, '100')],
+            'rows.*.dia' => ['required', 'integer', 'min:1', 'max:1000', 'distinct'],
+            'rows.*.waste_percent' => ['nullable', new DecimalInput(2, false, '100')],
+            'rows.*.output_fabric_kg' => ['nullable', new DecimalInput(3, false)],
             'rows.*.quantities' => ['required', 'array'], 'rows.*.quantities.*' => ['required', new DecimalInput]];
     }
 
