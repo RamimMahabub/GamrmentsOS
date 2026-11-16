@@ -46,4 +46,12 @@ export function split(available, count) {
     values[count - 1] = new Big(String(available)).minus(new Big(portion).times(String(count - 1))).toFixed(3);
     return values;
 }
+export function formatWeight(kg, places = 3, trim = false) {
+    if (kg === null || kg === undefined || kg === '' || isNaN(Number(String(kg).replaceAll(',', '')))) return '—';
+    try {
+        const kgFormatted = format(kg, places, trim);
+        const lbFormatted = format(fromKg(kg, 'lb'), places, trim);
+        return `${kgFormatted} kg (${lbFormatted} lb)`;
+    } catch { return '—'; }
+}
 export { Big };

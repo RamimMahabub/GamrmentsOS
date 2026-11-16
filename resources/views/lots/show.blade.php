@@ -192,7 +192,7 @@
             </div>
             <div>
                 <p class="hint">TOTAL FABRIC</p>
-                <p class="mt-1 text-base font-bold text-ink">{{ $pipeline['roll_weight'] }} kg <span class="text-xs font-normal text-muted">({{ $pipeline['roll_count'] }} rolls)</span></p>
+                <p class="mt-1 text-base font-bold text-ink"><x-weight-display :kg="$pipeline['roll_weight']"/> <span class="text-xs font-normal text-muted">({{ $pipeline['roll_count'] }} rolls)</span></p>
             </div>
         </div>
         <div class="table-wrap">
@@ -202,7 +202,7 @@
                         <th>Roll #</th>
                         <th>Color</th>
                         <th>DIA</th>
-                        <th class="number">Weight, KG</th>
+                        <th class="number">Weight</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -212,7 +212,7 @@
                             <td class="font-mono font-bold">{{ $roll->number }}</td>
                             <td>{{ $roll->color?->name ?? '—' }}</td>
                             <td><span class="pill">DIA {{ $roll->dia }}</span></td>
-                            <td class="number font-bold">{{ $roll->weight_kg }} kg</td>
+                            <td class="number font-bold"><x-weight-display :kg="$roll->weight_kg"/></td>
                             <td>
                                 @if($roll->is_available)
                                     <span class="pill bg-emerald-50 text-emerald-800 border-emerald-300 text-xs">Ready for Cutting</span>
@@ -228,13 +228,13 @@
     </div>
 @else
     <div class="mb-6 panel"><div class="panel-head"><h2>Yarn & knitting partner</h2><span class="hint">{{ $lot->lot_date->format('d/m/Y') }}</span></div><div class="grid gap-6 p-6 md:grid-cols-2"><div><p class="hint">YARNS USED</p>@foreach($lot->knittingJob->yarnLinks as $link)<a class="link mt-2 block" href="{{ route('yarns.show',$link->yarn) }}">{{ $link->yarn->name }} · {{ $link->yarn->yarn_type }}</a>@endforeach</div><div><p class="hint">KNITTING COMPANY</p><p class="mt-2 font-medium">{{ $lot->knittingJob->company->name }}</p><p class="hint mt-1">{{ $lot->knittingJob->company->address }}</p></div></div></div>
-    <section class="panel mb-6"><div class="panel-head"><h2>Weight through the stages</h2><span class="hint">All balances in kg</span></div><div class="grid gap-5 p-6 sm:grid-cols-3">
+    <section class="panel mb-6"><div class="panel-head"><h2>Weight through the stages</h2><span class="hint">Balances shown in both kg and lb</span></div><div class="grid gap-5 p-6 sm:grid-cols-3">
     @foreach(['input' => 'Yarn issued', 'knitting_loss' => 'Knitting loss', 'output' => 'Knitted fabric', 'given' => 'Sent to dyeing', 'undyed' => 'Grey fabric remaining', 'pending' => 'At dyeing (given weight)', 'dyeing_loss' => 'Dyeing loss / negative = gain', 'returned' => 'Returned dyed fabric', 'roll_weight' => 'Recorded roll weight'] as $key => $label)
-    <div><p class="hint">{{ $label }}</p><p class="mt-2 text-xl font-semibold">{{ $pipeline[$key] }} kg</p></div>
+    <div><p class="hint">{{ $label }}</p><p class="mt-2 text-xl font-semibold"><x-weight-display :kg="$pipeline[$key]"/></p></div>
     @endforeach
-    </div><div class="border-t p-6 text-sm"><p>{{ $pipeline['roll_count'] }} rolls recorded for the next stage.</p><p>Returned weight without roll details: {{ $pipeline['unitemized'] }} kg.</p><p class="hint mt-2">Yarn issued = knitting loss + grey fabric remaining + fabric at dyeing + dyeing loss + returned fabric. Dyeing loss uses only rows with recorded returns.</p></div></section>
+    </div><div class="border-t p-6 text-sm"><p>{{ $pipeline['roll_count'] }} rolls recorded for the next stage.</p><p>Returned weight without roll details: {{ \App\Support\Decimal::formatWeight($pipeline['unitemized']) }}.</p><p class="hint mt-2">Yarn issued = knitting loss + grey fabric remaining + fabric at dyeing + dyeing loss + returned fabric. Dyeing loss uses only rows with recorded returns.</p></div></section>
     <x-knitting-table :job="$lot->knittingJob"/>
-    <div class="panel my-6"><div class="panel-head"><h2>Fabric balance by DIA</h2><a class="link text-xs" href="{{ route('dyeing-jobs.create',['lot_id'=>$lot->id]) }}">Send available fabric to dyeing →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>DIA</th><th class="number">KNITTED OUTPUT, KG</th><th class="number">GIVEN TO DYEING, KG</th><th class="number">AVAILABLE, KG</th></tr></thead><tbody>@foreach($fabric as $row)<tr><td><span class="pill">{{ $row['dia'] }}</span></td><td class="number">{{ $row['output_kg'] }}</td><td class="number">{{ $row['consumed_kg'] }}</td><td class="number font-semibold text-accent">{{ $row['available_kg'] }}</td></tr>@endforeach</tbody></table></div></div>
+    <div class="panel my-6"><div class="panel-head"><h2>Fabric balance by DIA</h2><a class="link text-xs" href="{{ route('dyeing-jobs.create',['lot_id'=>$lot->id]) }}">Send available fabric to dyeing →</a></div><div class="table-wrap"><table class="data-table"><thead><tr><th>DIA</th><th class="number">KNITTED OUTPUT</th><th class="number">GIVEN TO DYEING</th><th class="number">AVAILABLE</th></tr></thead><tbody>@foreach($fabric as $row)<tr><td><span class="pill">{{ $row['dia'] }}</span></td><td class="number"><x-weight-display :kg="$row['output_kg']"/></td><td class="number"><x-weight-display :kg="$row['consumed_kg']"/></td><td class="number font-semibold text-accent"><x-weight-display :kg="$row['available_kg']"/></td></tr>@endforeach</tbody></table></div></div>
     <div id="dyeing-section"></div>
     @forelse($lot->dyeingJobs as $job)<div class="mb-6 mt-8 flex items-center justify-between"><div><h2>Dyeing · {{ $job->company->name }}</h2><p class="hint mt-1">Sent {{ $job->entry_date->format('d/m/Y') }} · Returned {{ $job->return_date?->format('d/m/Y') ?? 'pending' }}</p></div><a class="link text-xs" href="{{ route('dyeing-jobs.show',$job) }}">Job details ↗</a></div><x-dyeing-tables :job="$job"/>@empty<div class="panel p-10 text-center text-muted">No dyeing allocations yet.</div>@endforelse
     @if(count($dyed))
@@ -246,7 +246,7 @@
             </div>
             <a class="link text-xs" href="{{ route('fabric.index', ['lot_id' => $lot->id]) }}">View in Fabric Inventory &rarr;</a>
         </div>
-        <div class="table-wrap"><table class="data-table"><thead><tr><th>COLOR</th><th>DIA</th><th class="number">RETURNED, KG</th></tr></thead><tbody>@foreach($dyed as $row)<tr><td>{{ $row['color'] }}</td><td>{{ $row['dia'] }}</td><td class="number">{{ $row['quantity_kg'] }}</td></tr>@endforeach</tbody></table></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>COLOR</th><th>DIA</th><th class="number">RETURNED</th></tr></thead><tbody>@foreach($dyed as $row)<tr><td>{{ $row['color'] }}</td><td>{{ $row['dia'] }}</td><td class="number"><x-weight-display :kg="$row['quantity_kg']"/></td></tr>@endforeach</tbody></table></div>
     </div>
     @endif
 @endif

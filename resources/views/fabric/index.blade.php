@@ -28,7 +28,7 @@
             <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted block">Available Fabric</span>
                 <div class="text-sm font-bold text-accent tabular-nums mt-0.5">
-                    {{ $totalFabricAvailableKg }} <span class="text-xs font-normal text-muted">kg</span>
+                    <x-weight-display :kg="$totalFabricAvailableKg"/>
                 </div>
             </div>
             <span class="pill text-[10px] font-medium">{{ $totalAvailableRolls }} rolls</span>
@@ -38,7 +38,7 @@
             <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted block">Cut / Processed</span>
                 <div class="text-sm font-bold text-ink tabular-nums mt-0.5">
-                    {{ $totalFabricCutKg }} <span class="text-xs font-normal text-muted">kg</span>
+                    <x-weight-display :kg="$totalFabricCutKg"/>
                 </div>
             </div>
             <span class="text-[10px] text-muted">{{ $totalExhaustedRolls }} cut</span>
@@ -48,7 +48,7 @@
             <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted block">Total Returned</span>
                 <div class="text-sm font-bold text-ink tabular-nums mt-0.5">
-                    {{ $totalFabricReturnedKg }} <span class="text-xs font-normal text-muted">kg</span>
+                    <x-weight-display :kg="$totalFabricReturnedKg"/>
                 </div>
             </div>
             <x-icon name="roll" class="h-3.5 w-3.5 text-muted"/>
@@ -182,21 +182,18 @@
 
                             <!-- Returned Weight -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">{{ $item['returned_kg'] }}</span>
-                                <span class="text-[10px] text-muted">kg</span>
+                                <x-weight-display :kg="$item['returned_kg']"/>
                             </td>
 
                             <!-- Cut Weight -->
                             <td class="number">
-                                <span class="font-medium tabular-nums text-muted text-xs">{{ $item['cut_weight_kg'] }}</span>
-                                <span class="text-[10px] text-muted">kg</span>
+                                <x-weight-display :kg="$item['cut_weight_kg']"/>
                             </td>
 
                             <!-- Available Weight -->
                             <td class="number">
                                 @if(! $item['is_exhausted'])
-                                    <span class="font-bold tabular-nums text-accent text-xs">{{ $item['remaining_kg'] }}</span>
-                                    <span class="text-[10px] text-muted">kg</span>
+                                    <x-weight-display :kg="$item['remaining_kg']" class="text-accent font-bold"/>
                                 @else
                                     <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-600 border border-zinc-200">
                                         All Cut

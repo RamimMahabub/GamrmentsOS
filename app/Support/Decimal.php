@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Modules\Yarn\UnitConverter;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use InvalidArgumentException;
@@ -53,5 +54,19 @@ final class Decimal
         $formatted = self::scale((string) $value, $scale);
 
         return $trim && $scale > 0 ? rtrim(rtrim($formatted, '0'), '.') : $formatted;
+    }
+
+    public static function formatWeight(string|int|float|null $valueKg, int $scale = 3, bool $trim = false): string
+    {
+        if ($valueKg === null || $valueKg === '' || ! is_numeric(str_replace(',', '', (string) $valueKg))) {
+            return '—';
+        }
+        $kgStr = self::scale((string) $valueKg, $scale);
+        $displayKg = $trim && $scale > 0 ? rtrim(rtrim($kgStr, '0'), '.') : $kgStr;
+
+        $lbVal = UnitConverter::fromKg((string) $valueKg, 'lb', $scale);
+        $displayLb = $trim && $scale > 0 ? rtrim(rtrim($lbVal, '0'), '.') : $lbVal;
+
+        return "{$displayKg} kg ({$displayLb} lb)";
     }
 }

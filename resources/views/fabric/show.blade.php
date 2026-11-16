@@ -29,7 +29,7 @@
         <div class="rounded-2xl border border-line bg-surface p-5 shadow-sm">
             <span class="text-xs font-semibold text-muted uppercase tracking-wider">Returned from Dyeing</span>
             <div class="text-2xl font-bold text-ink mt-2">
-                {{ $totalLotReturnedKg }} <span class="text-xs font-normal text-muted">kg</span>
+                <x-weight-display :kg="$totalLotReturnedKg"/>
             </div>
             <div class="text-xs text-muted mt-1">{{ $rollsData->count() }} itemized rolls</div>
         </div>
@@ -37,7 +37,7 @@
         <div class="rounded-2xl border border-line bg-surface p-5 shadow-sm">
             <span class="text-xs font-semibold text-muted uppercase tracking-wider">Consumed in Cutting</span>
             <div class="text-2xl font-bold text-muted mt-2">
-                {{ $totalLotUsedKg }} <span class="text-xs font-normal text-muted">kg</span>
+                <x-weight-display :kg="$totalLotUsedKg"/>
             </div>
             <div class="text-xs text-muted mt-1">{{ $rollsData->where('cuts_count', '>', 0)->count() }} rolls engaged</div>
         </div>
@@ -45,7 +45,7 @@
         <div class="rounded-2xl border border-line bg-surface p-5 shadow-sm">
             <span class="text-xs font-semibold text-muted uppercase tracking-wider">Current Available Fabric</span>
             <div class="text-2xl font-bold text-accent mt-2">
-                {{ $totalLotRemainingKg }} <span class="text-xs font-normal text-muted">kg</span>
+                <x-weight-display :kg="$totalLotRemainingKg"/>
             </div>
             <div class="text-xs text-muted mt-1">{{ $rollsData->where('is_cut', false)->count() }} rolls ready for cutting</div>
         </div>
@@ -68,9 +68,9 @@
                             <th>DIA</th>
                             <th class="number">TOTAL ROLLS</th>
                             <th class="number">AVAILABLE ROLLS</th>
-                            <th class="number">RETURNED (KG)</th>
-                            <th class="number">CUT (KG)</th>
-                            <th class="number">AVAILABLE (KG)</th>
+                            <th class="number">RETURNED (KG / LB)</th>
+                            <th class="number">CUT (KG / LB)</th>
+                            <th class="number">AVAILABLE (KG / LB)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -87,10 +87,10 @@
                                 <td class="number font-bold {{ $grp['available_rolls'] > 0 ? 'text-accent' : 'text-muted' }}">
                                     {{ $grp['available_rolls'] }}
                                 </td>
-                                <td class="number">{{ $grp['total_weight_kg'] }}</td>
-                                <td class="number text-muted">{{ $grp['used_weight_kg'] }}</td>
+                                <td class="number"><x-weight-display :kg="$grp['total_weight_kg']"/></td>
+                                <td class="number text-muted"><x-weight-display :kg="$grp['used_weight_kg']"/></td>
                                 <td class="number font-bold {{ (float)$grp['remaining_weight_kg'] > 0 ? 'text-accent' : 'text-muted' }}">
-                                    {{ $grp['remaining_weight_kg'] }}
+                                    <x-weight-display :kg="$grp['remaining_weight_kg']"/>
                                 </td>
                             </tr>
                         @endforeach
@@ -139,10 +139,10 @@
                                 </span>
                             </td>
                             <td><span class="pill font-mono font-bold text-xs">{{ $dia ?? '—' }}</span></td>
-                            <td class="number font-medium">{{ $item['weight_kg'] }} kg</td>
-                            <td class="number text-muted">{{ $item['used_weight_kg'] }} kg</td>
+                            <td class="number font-medium"><x-weight-display :kg="$item['weight_kg']"/></td>
+                            <td class="number text-muted"><x-weight-display :kg="$item['used_weight_kg']"/></td>
                             <td class="number font-bold {{ (float)$item['remaining_weight_kg'] > 0 ? 'text-accent' : 'text-zinc-400' }}">
-                                {{ $item['remaining_weight_kg'] }} kg
+                                <x-weight-display :kg="$item['remaining_weight_kg']"/>
                             </td>
                             <td>
                                 @if($item['is_cut'])

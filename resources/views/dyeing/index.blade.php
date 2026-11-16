@@ -70,8 +70,8 @@
                         <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Lot Identity</th>
                         <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Dyeing Partner</th>
                         <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Color Allocations</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Given (KG)</th>
-                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Returned (KG)</th>
+                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Given (KG / LB)</th>
+                        <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Returned (KG / LB)</th>
                         <th class="number text-[10px] font-bold tracking-widest text-muted uppercase">Process Waste</th>
                         <th class="text-[10px] font-bold tracking-widest text-muted uppercase">Schedule Timeline</th>
                         <th class="number pr-4 text-[10px] font-bold tracking-widest text-muted uppercase">Actions</th>
@@ -115,15 +115,13 @@
 
                             <!-- Given Weight -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">{{ $totals['given'] }}</span>
-                                <span class="text-[10px] text-muted">kg</span>
+                                <x-weight-display :kg="$totals['given']"/>
                             </td>
 
                             <!-- Returned Weight -->
                             <td class="number">
                                 @if($totals['returned'] !== null)
-                                    <span class="font-bold tabular-nums text-ink text-xs">{{ $totals['returned'] }}</span>
-                                    <span class="text-[10px] text-muted">kg</span>
+                                    <x-weight-display :kg="$totals['returned']"/>
                                 @else
                                     <span class="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                                         <span class="h-1 w-1 rounded-full bg-amber-500 animate-pulse"></span> At Mill

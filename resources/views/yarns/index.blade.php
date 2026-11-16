@@ -183,13 +183,7 @@
 
                             <!-- Stock Reserve -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">
-                                    {{ \App\Support\Decimal::display(\App\Modules\Yarn\UnitConverter::fromKg($availableKg, $defaultUnit)) }}
-                                    <span class="text-[10px] font-normal text-muted">{{ $defaultUnit }}</span>
-                                </span>
-                                <span class="text-[10px] text-muted font-mono ml-1">
-                                    ({{ \App\Support\Decimal::display($availableKg) }} kg)
-                                </span>
+                                <x-weight-display :kg="$availableKg"/>
                             </td>
 
                             <!-- Standard Bags -->

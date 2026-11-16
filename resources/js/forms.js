@@ -1,4 +1,4 @@
-import { Big, decimal, format, toKg, fromKg, priceToKg, priceFromKg, sum, output, waste, split } from './math.js';
+import { Big, decimal, format, formatWeight, toKg, fromKg, priceToKg, priceFromKg, sum, output, waste, split } from './math.js';
 
 export function registerForms(Alpine) {
 const invalid = value => 'invalid:' + String(value);
@@ -34,12 +34,14 @@ Alpine.data('priceInput', initial => ({
 
 Alpine.data('knittingForm', initial => ({
     ...initial, count: initial.rows.length || initial.presets.length, search: '', preview: initial.lotNumber ?? 'Select yarn and date', sequence: 0,
+    outputUnit: 'kg',
     init() {
         this.rows = this.rows.map(row => ({...row, modes: {}, displays: {}, outputDisplay: ''}));
         if (!this.rows.length) this.resize();
         this.syncYarns();
         this.refreshOutputDisplays();
         this.$watch('unit', () => { this.refreshDisplays(); this.selectedYarns().forEach(y => this.reconcileYarn(y)); });
+        this.$watch('outputUnit', () => { this.refreshOutputDisplays(); });
         this.$watch('selected', () => { this.syncYarns(); this.refreshOutputDisplays(); this.previewLot(); });
         this.$watch('date', () => this.previewLot());
         this.previewLot();
@@ -72,8 +74,12 @@ Alpine.data('knittingForm', initial => ({
     },
     refreshOutputDisplays() {
         this.rows.forEach(row => {
-            const out = this.rowOutput(row);
-            row.outputDisplay = (out !== null && out !== undefined && out !== '0.000') ? format(out) : (row.outputDisplay || '');
+            const outKg = row.output_fabric_kg || this.rowOutput(row);
+            if (outKg !== null && outKg !== undefined && outKg !== '' && !isNaN(Number(outKg))) {
+                row.outputDisplay = format(fromKg(outKg, this.outputUnit));
+            } else {
+                row.outputDisplay = '';
+            }
         });
     },
     setMode(row, yarn, mode) { row.modes[yarn.id] = mode; this.refreshCell(row, yarn); this.reconcileYarn(yarn); },
@@ -82,15 +88,30 @@ Alpine.data('knittingForm', initial => ({
         row.quantities[yarn.id] = safe(() => row.modes[yarn.id] === 'bags' ? decimal(value).times(yarn.bagKg).toFixed(3, 1) : toKg(value, this.unit)) ?? invalid(value);
         this.reconcileYarn(yarn);
         const out = this.rowOutput(row);
-        row.outputDisplay = out !== null ? format(out) : '';
+        if (out !== null) {
+            row.output_fabric_kg = out;
+            row.outputDisplay = format(fromKg(out, this.outputUnit));
+        } else {
+            row.output_fabric_kg = '';
+            row.outputDisplay = '';
+        }
     },
     setOutput(row) {
         const outVal = row.outputDisplay;
-        if (!outVal || isNaN(Number(outVal)) || Number(outVal) < 0) return;
+        if (!outVal || isNaN(Number(outVal)) || Number(outVal) < 0) {
+            row.output_fabric_kg = '';
+            return;
+        }
+        const outKg = safe(() => toKg(outVal, this.outputUnit));
+        if (outKg === null) {
+            row.output_fabric_kg = '';
+            return;
+        }
+        row.output_fabric_kg = outKg;
         const inputKg = this.rowInput(row);
         if (inputKg && safe(() => new Big(inputKg).gt('0'))) {
             // Both input and output exist: calculate the actual waste %
-            const computedWaste = safe(() => waste(inputKg, outVal));
+            const computedWaste = safe(() => waste(inputKg, outKg));
             if (computedWaste !== null) {
                 row.waste_percent = computedWaste;
             }
@@ -101,7 +122,7 @@ Alpine.data('knittingForm', initial => ({
             const wasteP = safe(() => decimal(row.waste_percent)) ?? new Big('0');
             if (wasteP.gte('100')) return;
             const factor = new Big('1').minus(wasteP.div('100'));
-            const targetInputKg = new Big(String(outVal)).div(factor);
+            const targetInputKg = new Big(String(outKg)).div(factor);
 
             if (yarns.length === 1) {
                 const yarn = yarns[0];
@@ -125,13 +146,19 @@ Alpine.data('knittingForm', initial => ({
         row.waste_percent = String(val);
         const input = this.rowInput(row);
         if (input !== null && input !== undefined && safe(() => new Big(input).gt('0'))) {
-            const out = safe(() => output(input, row.waste_percent));
-            row.outputDisplay = out !== null ? format(out) : '';
+            const outKg = safe(() => output(input, row.waste_percent));
+            if (outKg !== null) {
+                row.output_fabric_kg = outKg;
+                row.outputDisplay = format(fromKg(outKg, this.outputUnit));
+            } else {
+                row.output_fabric_kg = '';
+                row.outputDisplay = '';
+            }
         }
     },
     rowWasteKg(row) {
         const input = this.rowInput(row);
-        const out = row.outputDisplay || this.rowOutput(row);
+        const out = row.output_fabric_kg || this.rowOutput(row);
         if (input === null || out === null || out === '' || isNaN(Number(out))) return null;
         return safe(() => {
             const diff = new Big(String(input)).minus(String(out));
@@ -190,12 +217,13 @@ Alpine.data('knittingForm', initial => ({
     rowOutput(row) { const input = this.rowInput(row); return input === null ? null : safe(() => output(input, row.waste_percent)); },
     totals() {
         const input = safe(() => sum(this.rows.map(r => this.rowInput(r))));
-        const outputs = this.rows.map(r => r.outputDisplay || this.rowOutput(r)).filter(v => v !== null && v !== '' && !isNaN(Number(v)));
+        const outputs = this.rows.map(r => r.output_fabric_kg || this.rowOutput(r)).filter(v => v !== null && v !== '' && !isNaN(Number(v)));
         const out = outputs.length === this.rows.length ? safe(() => sum(outputs)) : null;
         const wastePercent = input !== null && out !== null ? safe(() => waste(input, out)) : null;
         const wasteKg = input !== null && out !== null ? safe(() => new Big(String(input)).minus(String(out)).toFixed(3, 1)) : null;
         return {input, output: out, waste: wastePercent, wasteKg};
     },
+    formatWeight,
     bags(row, yarn) { return yarn.bagKg ? format(safe(() => new Big(row.quantities[yarn.id]).div(yarn.bagKg).toString()), 2, true) : null; },
     async previewLot() {
         if (this.lotNumber) { this.preview = this.lotNumber; return; }
@@ -355,6 +383,9 @@ Alpine.data('dyeingForm', initial => ({
     overAllocated() { return this.summary?.rows.some(d => safe(() => new Big(this.remaining(d)).lt('0'))); },
     excessReturn() { return this.allRows().some(r => safe(() => r.returned_fabric_kg !== null && r.returned_fabric_kg !== '' && decimal(r.returned_fabric_kg).gt(decimal(r.given_fabric_kg)))); },
     format,
+    formatWeight,
+    fromKg,
+    toKg,
 }));
 
 }

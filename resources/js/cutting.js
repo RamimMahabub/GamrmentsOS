@@ -1,4 +1,4 @@
-import { Big, decimal, format, toKg } from './math.js';
+import { Big, decimal, format, formatWeight, toKg, fromKg } from './math.js';
 
 export function cuttingPieces(row) {
     if (!row.quantity_mode) return row.pieces == null ? decimal(row.dozens).times('12') : decimal(row.pieces);
@@ -228,5 +228,8 @@ export function registerCutting(Alpine) {
             return !this.isNeck && !row.quantity_mode && !String(row.dozens ?? '').trim() && !String(row.weight_per_dozen ?? '').trim();
         },
         display: format,
+        formatWeight,
+        fromKg,
+        toKg,
     }));
 }

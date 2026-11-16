@@ -70,8 +70,8 @@
                         <th>Lot Identity</th>
                         <th>Entry Date</th>
                         <th>Knitting Partner & Yarn</th>
-                        <th class="number">Input (KG)</th>
-                        <th class="number">Output (KG)</th>
+                        <th class="number">Input (KG / LB)</th>
+                        <th class="number">Output (KG / LB)</th>
                         <th class="number">Process Waste</th>
                         <th>Delivery Schedule</th>
                         <th class="number pr-4">Actions</th>
@@ -116,14 +116,12 @@
 
                             <!-- Input Weight -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">{{ $totals['input'] }}</span>
-                                <span class="text-[10px] text-muted">kg</span>
+                                <x-weight-display :kg="$totals['input']"/>
                             </td>
 
                             <!-- Output Weight -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">{{ $totals['output'] }}</span>
-                                <span class="text-[10px] text-muted">kg</span>
+                                <x-weight-display :kg="$totals['output']"/>
                             </td>
 
                             <!-- Waste Percentage -->

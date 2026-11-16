@@ -6,7 +6,7 @@
     <div class="panel-head">
         <div>
             <h2>Dyeing allocation and returned rolls</h2>
-            <p class="hint mt-1">One row per color and DIA · all weights in kg</p>
+            <p class="hint mt-1">One row per color and DIA · weights shown in both kg and lb</p>
         </div>
         <span class="hint">{{ $job->colorBlocks->count() }} colors</span>
     </div>
@@ -16,8 +16,8 @@
                 <tr>
                     <th>COLOR</th>
                     <th>DIA</th>
-                    <th class="number">GIVEN KG</th>
-                    <th class="number">RETURNED KG</th>
+                    <th class="number">GIVEN (KG / LB)</th>
+                    <th class="number">RETURNED (KG / LB)</th>
                     <th class="number">WASTE</th>
                     <th>ROLL NUMBERS</th>
                     <th>ROLL WEIGHTS</th>
@@ -37,8 +37,8 @@
                         <tr class="{{ $rowIndex % 2 === 1 ? 'row-even' : '' }}">
                             <td class="dyeing-spreadsheet-color">{{ $block->color->name }}</td>
                             <td><span class="pill">{{ $row->dia }}</span></td>
-                            <td class="number">{{ $row->given_fabric_kg }}</td>
-                            <td class="number">{{ $row->returned_fabric_kg ?? '—' }}</td>
+                            <td class="number"><x-weight-display :kg="$row->given_fabric_kg"/></td>
+                            <td class="number"><x-weight-display :kg="$row->returned_fabric_kg"/></td>
                             <td class="number">{{ $row->waste_percent === null ? '—' : $row->waste_percent.'%' }}</td>
                             <td>
                                 @if($rolls->isNotEmpty())
@@ -49,7 +49,7 @@
                             </td>
                             <td>
                                 @if($rolls->isNotEmpty())
-                                    <div class="dyeing-spreadsheet-lines">@foreach($rolls as $roll)<span>{{ $roll['weight'] }} {{ $roll['unit'] }} ({{ $roll['weight_kg'] }} kg)</span>@endforeach</div>
+                                    <div class="dyeing-spreadsheet-lines">@foreach($rolls as $roll)<span>{{ \App\Support\Decimal::formatWeight($roll['weight_kg']) }}</span>@endforeach</div>
                                 @else
                                     <span class="hint">—</span>
                                 @endif
@@ -58,8 +58,8 @@
                     @endforeach
                     <tr class="dyeing-spreadsheet-subtotal">
                         <td colspan="2">Subtotal · {{ $block->color->name }}</td>
-                        <td class="number">{{ $totals['given'] }}</td>
-                        <td class="number">{{ $totals['returned'] ?? '—' }}</td>
+                        <td class="number"><x-weight-display :kg="$totals['given']"/></td>
+                        <td class="number"><x-weight-display :kg="$totals['returned']"/></td>
                         <td class="number">{{ $totals['waste'] === null ? '—' : $totals['waste'].'%' }}</td>
                         <td colspan="2"></td>
                     </tr>
@@ -68,8 +68,8 @@
             <tfoot>
                 <tr>
                     <td colspan="2">Grand total</td>
-                    <td class="number">{{ $grand['given'] }}</td>
-                    <td class="number">{{ $grand['returned'] === null ? '—' : $grand['returned'] }}</td>
+                    <td class="number"><x-weight-display :kg="$grand['given']"/></td>
+                    <td class="number"><x-weight-display :kg="$grand['returned']"/></td>
                     <td class="number">{{ $grand['waste'] === null ? '—' : $grand['waste'].'%' }}</td>
                     <td colspan="2"></td>
                 </tr>

@@ -220,6 +220,13 @@
             let num = parseFloat(val);
             if (isNaN(num)) return '0.000';
             return num.toFixed(decimals);
+        },
+
+        formatWeight(kg, decimals = 3) {
+            let num = parseFloat(kg);
+            if (isNaN(num)) return '—';
+            let lb = num / 0.45359237;
+            return num.toFixed(decimals) + ' kg (' + lb.toFixed(decimals) + ' lb)';
         }
     }" class="space-y-6">
         @csrf
@@ -334,7 +341,7 @@
                             <div class="flex items-center gap-3">
                                 <input required type="text" list="color-master" :name="'blocks['+i+'][color]'" x-model="block.color" @input="updateColorName(block, i)" placeholder="Enter color name (e.g. Black, Navy, White)" class="w-64 font-bold text-sm">
                                 <span class="text-xs text-muted font-medium" x-show="block.color">
-                                    · <span x-text="colorRollsCount(block)"></span> rolls recorded (<span x-text="format(colorWeightKg(block))"></span> kg)
+                                    · <span x-text="colorRollsCount(block)"></span> rolls recorded (<span x-text="formatWeight(colorWeightKg(block))"></span>)
                                 </span>
                             </div>
                         </div>
@@ -379,7 +386,7 @@
                                         </div>
                                     </td>
                                     <td class="number text-right align-top pt-4 font-mono font-bold text-xs" :class="rowWeightKg(row) > 0 ? 'text-ink' : 'text-muted'">
-                                        <span x-text="format(rowWeightKg(row)) + ' kg'"></span>
+                                        <span x-text="formatWeight(rowWeightKg(row))"></span>
                                     </td>
                                 </tr>
                             </template>
@@ -390,7 +397,7 @@
                                 <td class="font-semibold text-xs">
                                     <span x-text="colorRollsCount(block)"></span> recorded rolls
                                 </td>
-                                <td class="number text-right font-bold font-mono text-xs" x-text="format(colorWeightKg(block)) + ' kg'"></td>
+                                <td class="number text-right font-bold font-mono text-xs" x-text="formatWeight(colorWeightKg(block))"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -418,7 +425,7 @@
                 <div>
                     <span class="hint">TOTAL FABRIC WEIGHT</span>
                     <div class="mt-2 text-2xl font-semibold text-accent">
-                        <span x-text="format(grandTotalWeightKg())"></span> <small class="text-xs text-muted">kg</small>
+                        <span x-text="formatWeight(grandTotalWeightKg())"></span>
                     </div>
                 </div>
                 <div>

@@ -91,9 +91,9 @@
                         <th>Lots & Colors</th>
                         <th class="number">Rolls</th>
                         <th class="number">Dozens Cut</th>
-                        <th class="number">Cut Weight (KG)</th>
-                        <th class="number">Scrap (KG)</th>
-                        <th class="number">Waste (KG)</th>
+                        <th class="number">Cut Weight (KG / LB)</th>
+                        <th class="number">Scrap (KG / LB)</th>
+                        <th class="number">Waste (KG / LB)</th>
                         <th class="number pr-4">Actions</th>
                     </tr>
                 </thead>
@@ -147,24 +147,29 @@
 
                             <!-- Cut Weight -->
                             <td class="number">
-                                <span class="font-bold tabular-nums text-ink text-xs">
-                                    {{ $totals['completed_count'] ? $totals['cut_weight_kg'] : '—' }}
-                                </span>
-                                @if($totals['completed_count'])<span class="text-[10px] text-muted">kg</span>@endif
+                                @if($totals['completed_count'])
+                                    <x-weight-display :kg="$totals['cut_weight_kg']"/>
+                                @else
+                                    <span class="tabular-nums text-muted text-xs">—</span>
+                                @endif
                             </td>
 
                             <!-- Scrap -->
                             <td class="number">
-                                <span class="tabular-nums text-muted text-xs">
-                                    {{ $totals['completed_count'] ? $totals['cutting_scrap_kg'] : '—' }}
-                                </span>
+                                @if($totals['completed_count'])
+                                    <x-weight-display :kg="$totals['cutting_scrap_kg']"/>
+                                @else
+                                    <span class="tabular-nums text-muted text-xs">—</span>
+                                @endif
                             </td>
 
                             <!-- Total Waste -->
                             <td class="number">
-                                <span class="tabular-nums font-semibold text-rose-700 text-xs">
-                                    {{ $totals['completed_count'] ? $totals['waste_kg'] : '—' }}
-                                </span>
+                                @if($totals['completed_count'])
+                                    <x-weight-display :kg="$totals['waste_kg']" class="text-rose-700"/>
+                                @else
+                                    <span class="tabular-nums text-muted text-xs">—</span>
+                                @endif
                             </td>
 
                             <!-- Actions -->
