@@ -14,7 +14,10 @@
 <input type="hidden" :name="'rows['+i+'][quantities]['+yarn.id+']'" :value="row.quantities[yarn.id]">
 <div class="hint mt-1"><span x-text="format(row.quantities[yarn.id])+' kg'"></span><span x-show="yarn.bagKg" x-text="' · '+bags(row,yarn)+' bags'"></span></div>
 </td></template>
-<td class="number" x-text="format(rowInput(row))"></td><td class="number font-semibold text-accent" x-text="format(rowOutput(row))"></td>
+<td class="number" x-text="format(rowInput(row))"></td>
+<td class="number">
+<input type="text" inputmode="decimal" x-model="row.outputDisplay" @input="setOutput(row)" class="text-right font-semibold text-accent" :aria-label="'Fabric output for DIA '+row.dia" style="min-width:90px;max-width:110px">
+</td>
 <td><div class="mb-2 flex gap-2"><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="row.waste_percent='0'">0%</button><button type="button" class="rounded border border-accent-line px-2 py-1 text-[10px]" @click="row.waste_percent='1'">1%</button></div><div class="flex items-center gap-2"><input type="text" inputmode="decimal" :name="'rows['+i+'][waste_percent]'" x-model="row.waste_percent" :aria-label="'Waste percent for DIA '+row.dia" required style="min-width:65px;max-width:80px"><span class="hint">%</span></div></td>
 </tr></template>
 </tbody><tfoot><tr><td :colspan="selected.length+1">Shipment total</td><td class="number" x-text="format(totals().input)"></td><td class="number" x-text="format(totals().output)"></td><td x-text="totals().waste===null ? '—' : format(totals().waste,2)+'%'"></td></tr></tfoot></table></div><p class="px-6 py-4 text-xs text-muted">Fabric output is always in kg. Your final lot number is assigned when you save.@if($job->exists) The existing lot number stays unchanged.@endif</p>

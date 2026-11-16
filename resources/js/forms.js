@@ -35,11 +35,12 @@ Alpine.data('priceInput', initial => ({
 Alpine.data('knittingForm', initial => ({
     ...initial, count: initial.rows.length || initial.presets.length, search: '', preview: initial.lotNumber ?? 'Select yarn and date', sequence: 0,
     init() {
-        this.rows = this.rows.map(row => ({...row, modes: {}, displays: {}}));
+        this.rows = this.rows.map(row => ({...row, modes: {}, displays: {}, outputDisplay: ''}));
         if (!this.rows.length) this.resize();
         this.syncYarns();
+        this.refreshOutputDisplays();
         this.$watch('unit', () => { this.refreshDisplays(); this.selectedYarns().forEach(y => this.reconcileYarn(y)); });
-        this.$watch('selected', () => { this.syncYarns(); this.previewLot(); });
+        this.$watch('selected', () => { this.syncYarns(); this.refreshOutputDisplays(); this.previewLot(); });
         this.$watch('date', () => this.previewLot());
         this.previewLot();
     },
@@ -49,7 +50,7 @@ Alpine.data('knittingForm', initial => ({
         this.rows.forEach(row => {
             const next = {};
             this.selected.forEach(id => next[id] = row.quantities[id] ?? '0.000');
-            row.quantities = next; row.modes ??= {}; row.displays ??= {};
+            row.quantities = next; row.modes ??= {}; row.displays ??= {}; row.outputDisplay ??= '';
         });
         this.refreshDisplays();
     },
@@ -60,19 +61,61 @@ Alpine.data('knittingForm', initial => ({
             if (!confirm('Remove the extra DIA rows and their entered quantities?')) { this.count = this.rows.length; return; }
         }
         this.rows = this.rows.slice(0, count);
-        while (this.rows.length < count) this.rows.push({dia: String(this.presets[this.rows.length] ?? ''), waste_percent: '0', quantities: {}, modes: {}, displays: {}});
+        while (this.rows.length < count) this.rows.push({dia: String(this.presets[this.rows.length] ?? ''), waste_percent: '0', quantities: {}, modes: {}, displays: {}, outputDisplay: ''});
         this.syncYarns();
+        this.refreshOutputDisplays();
         this.selectedYarns().forEach(y => this.reconcileYarn(y));
     },
     refreshDisplays() { this.rows.forEach(row => this.selectedYarns().forEach(y => this.refreshCell(row, y))); },
     refreshCell(row, yarn) {
         row.displays[yarn.id] = safe(() => row.modes[yarn.id] === 'bags' ? format(new Big(row.quantities[yarn.id]).div(yarn.bagKg).toString(), 2, true) : format(fromKg(row.quantities[yarn.id], this.unit))) ?? '';
     },
+    refreshOutputDisplays() {
+        this.rows.forEach(row => {
+            const out = this.rowOutput(row);
+            row.outputDisplay = (out !== null && out !== undefined && out !== '0.000') ? format(out) : (row.outputDisplay || '');
+        });
+    },
     setMode(row, yarn, mode) { row.modes[yarn.id] = mode; this.refreshCell(row, yarn); this.reconcileYarn(yarn); },
     setQuantity(row, yarn) {
         const value = row.displays[yarn.id];
         row.quantities[yarn.id] = safe(() => row.modes[yarn.id] === 'bags' ? decimal(value).times(yarn.bagKg).toFixed(3, 1) : toKg(value, this.unit)) ?? invalid(value);
         this.reconcileYarn(yarn);
+        const out = this.rowOutput(row);
+        row.outputDisplay = out !== null ? format(out) : '';
+    },
+    setOutput(row) {
+        const outVal = row.outputDisplay;
+        if (!outVal || isNaN(Number(outVal)) || Number(outVal) < 0) return;
+        const yarns = this.selectedYarns();
+        if (!yarns.length) return;
+
+        // Calculate required input: input = output / (1 - waste/100)
+        const wasteP = safe(() => decimal(row.waste_percent)) ?? new Big('0');
+        if (wasteP.gte('100')) return;
+        const factor = new Big('1').minus(wasteP.div('100'));
+        const targetInputKg = new Big(String(outVal)).div(factor);
+
+        if (yarns.length === 1) {
+            const yarn = yarns[0];
+            row.quantities[yarn.id] = targetInputKg.toFixed(3, 1);
+            this.refreshCell(row, yarn);
+            this.reconcileYarn(yarn);
+        } else {
+            // Distribute proportionally or equally
+            const currentTotal = safe(() => new Big(sum(Object.values(row.quantities)))) ?? new Big('0');
+            yarns.forEach(yarn => {
+                let share;
+                if (currentTotal.gt('0')) {
+                    share = new Big(row.quantities[yarn.id] || '0').div(currentTotal);
+                } else {
+                    share = new Big('1').div(yarns.length);
+                }
+                row.quantities[yarn.id] = targetInputKg.times(share).toFixed(3, 1);
+                this.refreshCell(row, yarn);
+                this.reconcileYarn(yarn);
+            });
+        }
     },
     reconcileYarn(yarn) {
         if (!yarn) return;
